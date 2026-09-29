@@ -877,3 +877,6 @@ app.use((req, res) => {
 });
 
 module.exports = app;
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`Spice Garden POS & CRM Server running on port ${PORT}!`);
+});
