@@ -1,0 +1,81 @@
+{
+  "restaurant": {
+    "name": "Spice Garden",
+    "gst_number": "09ABCDE1234F1Z5",
+    "address": "Sector 62, Noida, UP",
+    "phone": "9876543210",
+    "upi_id": "spicegarden@upi",
+    "upi_name": "Spice Garden Restaurant"
+  },
+  "tables": [
+    { "table_id": 1, "table_number": "T1", "qr_url": "https://crm.com/menu?table=1", "status": "available", "capacity": 4 },
+    { "table_id": 2, "table_number": "T2", "qr_url": "https://crm.com/menu?table=2", "status": "occupied", "capacity": 2 },
+    { "table_id": 3, "table_number": "T3", "qr_url": "https://crm.com/menu?table=3", "status": "available", "capacity": 6 }
+  ],
+  "customers": [
+    { "customer_id": 1, "name": "Rahul Sharma", "phone": "9999991111", "email": "rahul.sharma@example.com", "address": "Noida", "gst_number": "" },
+    { "customer_id": 2, "name": "Amit Verma", "phone": "8888882222", "email": "amit.verma@example.com", "address": "Delhi", "gst_number": "" }
+  ],
+  "menu": [
+    { "item_id": 1, "name": "Paneer Tikka", "category": "Starter", "price": 250, "gst": 5, "description": "Char-grilled cottage cheese cubes marinated in spiced yogurt", "is_veg": true },
+    { "item_id": 2, "name": "Veg Biryani", "category": "Main Course", "price": 180, "gst": 5, "description": "Fragrant basmati rice layered with garden fresh vegetables and saffron", "is_veg": true },
+    { "item_id": 3, "name": "Butter Naan", "category": "Bread", "price": 40, "gst": 5, "description": "Soft leavened tandoor-baked flatbread brushed with fresh butter", "is_veg": true },
+    { "item_id": 4, "name": "Cold Drink", "category": "Beverage", "price": 60, "gst": 12, "description": "Chilled refreshing beverage bottle (300ml)", "is_veg": true }
+  ],
+  "inventory": [
+    { "inventory_id": 1, "name": "Paneer", "unit": "kg", "stock": 20, "min_stock": 5, "price": 300 },
+    { "inventory_id": 2, "name": "Rice", "unit": "kg", "stock": 50, "min_stock": 10, "price": 60 },
+    { "inventory_id": 3, "name": "Flour", "unit": "kg", "stock": 40, "min_stock": 8, "price": 40 },
+    { "inventory_id": 4, "name": "Cold Drink Bottles", "unit": "pcs", "stock": 100, "min_stock": 20, "price": 30 }
+  ],
+  "recipes": [
+    { "menu_item_id": 1, "inventory_id": 1, "qty_required": 0.2 },
+    { "menu_item_id": 2, "inventory_id": 2, "qty_required": 0.25 },
+    { "menu_item_id": 3, "inventory_id": 3, "qty_required": 0.1 },
+    { "menu_item_id": 4, "inventory_id": 4, "qty_required": 1 }
+  ],
+  "orders": [
+    {
+      "order_id": 101,
+      "table_id": 2,
+      "customer_id": 1,
+      "source": "qr",
+      "status": "completed",
+      "order_date": "2026-09-27T18:30:00.000Z",
+      "items": [
+        { "item_id": 1, "name": "Paneer Tikka", "qty": 2, "price": 250, "gst": 5 },
+        { "item_id": 3, "name": "Butter Naan", "qty": 4, "price": 40, "gst": 5 }
+      ],
+      "total": 660,
+      "gst": 33,
+      "cgst": 16.5,
+      "sgst": 16.5,
+      "grand_total": 693
+    }
+  ],
+  "payments": [
+    {
+      "payment_id": 1,
+      "order_id": 101,
+      "method": "upi",
+      "amount": 693,
+      "status": "paid",
+      "timestamp": "2026-09-27T18:45:00.000Z"
+    }
+  ],
+  "invoices": [
+    {
+      "invoice_id": 1,
+      "order_id": 101,
+      "invoice_no": "INV-001",
+      "cgst": 16.5,
+      "sgst": 16.5,
+      "total_tax": 33,
+      "date": "2026-09-27"
+    }
+  ],
+  "staff": [
+    { "staff_id": 1, "name": "Ramesh", "role": "Chef", "phone": "7777771111", "salary": 20000, "status": "active" },
+    { "staff_id": 2, "name": "Suresh", "role": "Waiter", "phone": "7777772222", "salary": 12000, "status": "active" }
+  ]
+}

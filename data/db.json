@@ -1,0 +1,536 @@
+{
+  "restaurant": {
+    "name": "Spice Garden",
+    "gst_number": "09ABCDE1234F1Z5",
+    "address": "Sector 62, Noida, UP",
+    "phone": "9876543210",
+    "upi_id": "spicegarden@upi",
+    "upi_name": "Spice Garden Restaurant",
+    "base_url": "http://10.59.187.160:3000"
+  },
+  "tables": [
+    {
+      "table_id": 1,
+      "table_number": "T1",
+      "qr_url": "http://10.59.187.160:3000/menu.html?table=T1",
+      "status": "available",
+      "capacity": 4
+    },
+    {
+      "table_id": 2,
+      "table_number": "T2",
+      "qr_url": "http://10.59.187.160:3000/menu.html?table=T2",
+      "status": "occupied",
+      "capacity": 2
+    },
+    {
+      "table_id": 3,
+      "table_number": "T3",
+      "qr_url": "http://10.59.187.160:3000/menu.html?table=T3",
+      "status": "available",
+      "capacity": 6
+    }
+  ],
+  "customers": [
+    {
+      "customer_id": 1,
+      "name": "Rahul Sharma",
+      "phone": "9999991111",
+      "email": "rahul.sharma@example.com",
+      "address": "Noida",
+      "gst_number": ""
+    },
+    {
+      "customer_id": 2,
+      "name": "Amit Verma",
+      "phone": "8888882222",
+      "email": "amit.verma@example.com",
+      "address": "Delhi",
+      "gst_number": ""
+    },
+    {
+      "customer_id": 3,
+      "name": "Guest Diner",
+      "phone": "9876500000",
+      "email": "",
+      "address": "Noida",
+      "gst_number": ""
+    }
+  ],
+  "menu": [
+    {
+      "item_id": 1,
+      "name": "Paneer Tikka",
+      "category": "Starter",
+      "price": 250,
+      "gst": 5,
+      "description": "Char-grilled cottage cheese cubes marinated in spiced yogurt",
+      "is_veg": true
+    },
+    {
+      "item_id": 2,
+      "name": "Veg Biryani",
+      "category": "Main Course",
+      "price": 180,
+      "gst": 5,
+      "description": "Fragrant basmati rice layered with garden fresh vegetables and saffron",
+      "is_veg": true
+    },
+    {
+      "item_id": 3,
+      "name": "Butter Naan",
+      "category": "Bread",
+      "price": 40,
+      "gst": 5,
+      "description": "Soft leavened tandoor-baked flatbread brushed with fresh butter",
+      "is_veg": true
+    },
+    {
+      "item_id": 4,
+      "name": "Cold Drink",
+      "category": "Beverage",
+      "price": 60,
+      "gst": 12,
+      "description": "Chilled refreshing beverage bottle (300ml)",
+      "is_veg": true
+    },
+    {
+      "item_id": 5,
+      "name": "burger",
+      "category": "Main Course",
+      "price": 120,
+      "gst": 5,
+      "description": "",
+      "is_veg": true
+    },
+    {
+      "item_id": 6,
+      "name": "burger",
+      "category": "Main Course",
+      "price": 120,
+      "gst": 5,
+      "description": "",
+      "is_veg": true
+    }
+  ],
+  "inventory": [
+    {
+      "inventory_id": 1,
+      "name": "Paneer",
+      "unit": "kg",
+      "stock": 19.4,
+      "min_stock": 5,
+      "price": 300
+    },
+    {
+      "inventory_id": 2,
+      "name": "Rice",
+      "unit": "kg",
+      "stock": 49.5,
+      "min_stock": 10,
+      "price": 60
+    },
+    {
+      "inventory_id": 3,
+      "name": "Flour",
+      "unit": "kg",
+      "stock": 39.8,
+      "min_stock": 8,
+      "price": 40
+    },
+    {
+      "inventory_id": 4,
+      "name": "Cold Drink Bottles",
+      "unit": "pcs",
+      "stock": 97,
+      "min_stock": 20,
+      "price": 30
+    }
+  ],
+  "recipes": [
+    {
+      "menu_item_id": 1,
+      "inventory_id": 1,
+      "qty_required": 0.2
+    },
+    {
+      "menu_item_id": 2,
+      "inventory_id": 2,
+      "qty_required": 0.25
+    },
+    {
+      "menu_item_id": 3,
+      "inventory_id": 3,
+      "qty_required": 0.1
+    },
+    {
+      "menu_item_id": 4,
+      "inventory_id": 4,
+      "qty_required": 1
+    }
+  ],
+  "orders": [
+    {
+      "order_id": 101,
+      "table_id": 2,
+      "customer_id": 1,
+      "source": "qr",
+      "status": "completed",
+      "order_date": "2026-09-27T18:30:00.000Z",
+      "items": [
+        {
+          "item_id": 1,
+          "name": "Paneer Tikka",
+          "qty": 2,
+          "price": 250,
+          "gst": 5
+        },
+        {
+          "item_id": 3,
+          "name": "Butter Naan",
+          "qty": 4,
+          "price": 40,
+          "gst": 5
+        }
+      ],
+      "total": 660,
+      "gst": 33,
+      "cgst": 16.5,
+      "sgst": 16.5,
+      "grand_total": 693
+    },
+    {
+      "order_id": 102,
+      "table_id": 1,
+      "customer_id": 3,
+      "source": "qr",
+      "status": "completed",
+      "order_date": "2026-09-27T14:32:41.458Z",
+      "items": [
+        {
+          "item_id": 1,
+          "name": "Paneer Tikka",
+          "category": "Starter",
+          "price": 250,
+          "qty": 1,
+          "subtotal": 250,
+          "gst_rate": 5,
+          "gst_amount": 12.5,
+          "cgst": 6.25,
+          "sgst": 6.25
+        },
+        {
+          "item_id": 2,
+          "name": "Veg Biryani",
+          "category": "Main Course",
+          "price": 180,
+          "qty": 1,
+          "subtotal": 180,
+          "gst_rate": 5,
+          "gst_amount": 9,
+          "cgst": 4.5,
+          "sgst": 4.5
+        },
+        {
+          "item_id": 3,
+          "name": "Butter Naan",
+          "category": "Bread",
+          "price": 40,
+          "qty": 1,
+          "subtotal": 40,
+          "gst_rate": 5,
+          "gst_amount": 2,
+          "cgst": 1,
+          "sgst": 1
+        },
+        {
+          "item_id": 4,
+          "name": "Cold Drink",
+          "category": "Beverage",
+          "price": 60,
+          "qty": 2,
+          "subtotal": 120,
+          "gst_rate": 12,
+          "gst_amount": 14.4,
+          "cgst": 7.2,
+          "sgst": 7.2
+        }
+      ],
+      "total": 590,
+      "gst": 37.9,
+      "cgst": 18.95,
+      "sgst": 18.95,
+      "grand_total": 627.9,
+      "deductions": [
+        {
+          "inventory_id": 1,
+          "name": "Paneer",
+          "unit": "kg",
+          "deduction": 0.2,
+          "previous_stock": 20,
+          "new_stock": 19.8
+        },
+        {
+          "inventory_id": 2,
+          "name": "Rice",
+          "unit": "kg",
+          "deduction": 0.25,
+          "previous_stock": 50,
+          "new_stock": 49.75
+        },
+        {
+          "inventory_id": 3,
+          "name": "Flour",
+          "unit": "kg",
+          "deduction": 0.1,
+          "previous_stock": 40,
+          "new_stock": 39.9
+        },
+        {
+          "inventory_id": 4,
+          "name": "Cold Drink Bottles",
+          "unit": "pcs",
+          "deduction": 2,
+          "previous_stock": 100,
+          "new_stock": 98
+        }
+      ]
+    },
+    {
+      "order_id": 103,
+      "table_id": 1,
+      "customer_id": 3,
+      "source": "qr",
+      "status": "completed",
+      "order_date": "2026-09-27T15:31:34.676Z",
+      "items": [
+        {
+          "item_id": 1,
+          "name": "Paneer Tikka",
+          "category": "Starter",
+          "price": 250,
+          "qty": 1,
+          "subtotal": 250,
+          "gst_rate": 5,
+          "gst_amount": 12.5,
+          "cgst": 6.25,
+          "sgst": 6.25
+        },
+        {
+          "item_id": 4,
+          "name": "Cold Drink",
+          "category": "Beverage",
+          "price": 60,
+          "qty": 1,
+          "subtotal": 60,
+          "gst_rate": 12,
+          "gst_amount": 7.2,
+          "cgst": 3.6,
+          "sgst": 3.6
+        },
+        {
+          "item_id": 5,
+          "name": "burger",
+          "category": "Main Course",
+          "price": 120,
+          "qty": 1,
+          "subtotal": 120,
+          "gst_rate": 5,
+          "gst_amount": 6,
+          "cgst": 3,
+          "sgst": 3
+        }
+      ],
+      "total": 430,
+      "gst": 25.7,
+      "cgst": 12.85,
+      "sgst": 12.85,
+      "grand_total": 455.7,
+      "deductions": [
+        {
+          "inventory_id": 1,
+          "name": "Paneer",
+          "unit": "kg",
+          "deduction": 0.2,
+          "previous_stock": 19.8,
+          "new_stock": 19.6
+        },
+        {
+          "inventory_id": 4,
+          "name": "Cold Drink Bottles",
+          "unit": "pcs",
+          "deduction": 1,
+          "previous_stock": 98,
+          "new_stock": 97
+        }
+      ]
+    },
+    {
+      "order_id": 104,
+      "table_id": 1,
+      "customer_id": 3,
+      "source": "qr",
+      "status": "completed",
+      "order_date": "2026-09-28T08:56:32.457Z",
+      "items": [
+        {
+          "item_id": 2,
+          "name": "Veg Biryani",
+          "category": "Main Course",
+          "price": 180,
+          "qty": 1,
+          "subtotal": 180,
+          "gst_rate": 5,
+          "gst_amount": 9,
+          "cgst": 4.5,
+          "sgst": 4.5
+        },
+        {
+          "item_id": 1,
+          "name": "Paneer Tikka",
+          "category": "Starter",
+          "price": 250,
+          "qty": 1,
+          "subtotal": 250,
+          "gst_rate": 5,
+          "gst_amount": 12.5,
+          "cgst": 6.25,
+          "sgst": 6.25
+        },
+        {
+          "item_id": 3,
+          "name": "Butter Naan",
+          "category": "Bread",
+          "price": 40,
+          "qty": 1,
+          "subtotal": 40,
+          "gst_rate": 5,
+          "gst_amount": 2,
+          "cgst": 1,
+          "sgst": 1
+        }
+      ],
+      "total": 470,
+      "gst": 23.5,
+      "cgst": 11.75,
+      "sgst": 11.75,
+      "grand_total": 493.5,
+      "deductions": [
+        {
+          "inventory_id": 2,
+          "name": "Rice",
+          "unit": "kg",
+          "deduction": 0.25,
+          "previous_stock": 49.75,
+          "new_stock": 49.5
+        },
+        {
+          "inventory_id": 1,
+          "name": "Paneer",
+          "unit": "kg",
+          "deduction": 0.2,
+          "previous_stock": 19.6,
+          "new_stock": 19.4
+        },
+        {
+          "inventory_id": 3,
+          "name": "Flour",
+          "unit": "kg",
+          "deduction": 0.1,
+          "previous_stock": 39.9,
+          "new_stock": 39.8
+        }
+      ]
+    }
+  ],
+  "payments": [
+    {
+      "payment_id": 1,
+      "order_id": 101,
+      "method": "upi",
+      "amount": 693,
+      "status": "paid",
+      "timestamp": "2026-09-27T18:45:00.000Z"
+    },
+    {
+      "payment_id": 2,
+      "order_id": 103,
+      "method": "upi",
+      "amount": 455.7,
+      "status": "paid",
+      "timestamp": "2026-09-27T15:34:18.199Z"
+    },
+    {
+      "payment_id": 3,
+      "order_id": 102,
+      "method": "upi",
+      "amount": 627.9,
+      "status": "paid",
+      "timestamp": "2026-09-27T15:34:24.397Z"
+    },
+    {
+      "payment_id": 4,
+      "order_id": 104,
+      "method": "cash",
+      "amount": 493.5,
+      "status": "paid",
+      "timestamp": "2026-09-28T08:57:01.932Z"
+    }
+  ],
+  "invoices": [
+    {
+      "invoice_id": 1,
+      "order_id": 101,
+      "invoice_no": "INV-001",
+      "cgst": 16.5,
+      "sgst": 16.5,
+      "total_tax": 33,
+      "date": "2026-09-27"
+    },
+    {
+      "invoice_id": 2,
+      "order_id": 103,
+      "invoice_no": "INV-002",
+      "cgst": 12.85,
+      "sgst": 12.85,
+      "total_tax": 25.7,
+      "date": "2026-09-27"
+    },
+    {
+      "invoice_id": 3,
+      "order_id": 102,
+      "invoice_no": "INV-003",
+      "cgst": 18.95,
+      "sgst": 18.95,
+      "total_tax": 37.9,
+      "date": "2026-09-27"
+    },
+    {
+      "invoice_id": 4,
+      "order_id": 104,
+      "invoice_no": "INV-004",
+      "cgst": 11.75,
+      "sgst": 11.75,
+      "total_tax": 23.5,
+      "date": "2026-09-28"
+    }
+  ],
+  "staff": [
+    {
+      "staff_id": 1,
+      "name": "Ramesh",
+      "role": "Chef",
+      "phone": "7777771111",
+      "salary": 20000,
+      "status": "active"
+    },
+    {
+      "staff_id": 2,
+      "name": "Suresh",
+      "role": "Waiter",
+      "phone": "7777772222",
+      "salary": 12000,
+      "status": "active"
+    }
+  ]
+}

@@ -1,0 +1,3464 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Aptaic POS</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#fff7ed',
+              100: '#ffedd5',
+              500: '#f97316',
+              600: '#ea580c',
+              700: '#c2410c'
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    /* Dual Print Styles */
+    @media print {
+      body * { visibility: hidden !important; }
+      
+      /* Print Thermal 80mm Mode */
+      body.print-mode-thermal #printable-receipt-thermal,
+      body.print-mode-thermal #printable-receipt-thermal * {
+        visibility: visible !important;
+      }
+      body.print-mode-thermal #printable-receipt-thermal {
+        position: absolute !important;
+        left: 0 !important;
+        top: 0 !important;
+        width: 80mm !important;
+        max-width: 80mm !important;
+        margin: 0 auto !important;
+        display: block !important;
+        padding: 5px !important;
+        font-family: 'Courier New', Courier, monospace !important;
+      }
+
+      /* Print Normal A4 Mode */
+      body.print-mode-normal #printable-receipt-normal,
+      body.print-mode-normal #printable-receipt-normal * {
+        visibility: visible !important;
+      }
+      body.print-mode-normal #printable-receipt-normal {
+        position: absolute !important;
+        left: 0 !important;
+        top: 0 !important;
+        width: 100% !important;
+        display: block !important;
+        padding: 20px !important;
+      }
+
+      /* Print Table Standees */
+      body.print-mode-standee #printable-standee,
+      body.print-mode-standee #printable-standee * {
+        visibility: visible !important;
+      }
+      body.print-mode-standee #printable-standee {
+        position: absolute !important;
+        left: 0 !important;
+        top: 0 !important;
+        width: 100% !important;
+        display: block !important;
+      }
+
+      /* Print Reports */
+      body.print-mode-reports #printable-reports-container,
+      body.print-mode-reports #printable-reports-container * {
+        visibility: visible !important;
+      }
+      body.print-mode-reports #printable-reports-container {
+        position: absolute !important;
+        left: 0 !important;
+        top: 0 !important;
+        width: 100% !important;
+        display: block !important;
+      }
+    }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 antialiased min-h-screen flex flex-col font-sans">
+
+  <!-- ================= 1. LOGIN DASHBOARD (SINGLE-USER PROTECTED) ================= -->
+  <div id="login-overlay" class="fixed inset-0 bg-slate-900/90 backdrop-blur-md z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-md w-full shadow-2xl overflow-hidden border border-slate-200">
+      <!-- APTAIC Branding Header -->
+      <div class="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-950 p-6 text-center text-white relative">
+        <div class="w-20 h-20 bg-white rounded-full p-2 mx-auto shadow-xl mb-3 flex items-center justify-center">
+          <img src="/assets/aptaic_logo.png" alt="Aptaic Logo" class="w-full h-full object-contain">
+        </div>
+        <h2 class="text-xl font-black tracking-tight">Spice Garden POS</h2>
+        <p class="text-xs text-orange-400 font-semibold tracking-wide uppercase mt-0.5">Developed By APTAIC</p>
+        <p class="text-[11px] text-slate-400 mt-1">Think Digital. Think APTAIC</p>
+      </div>
+
+      <!-- Login Form -->
+      <div class="p-6 space-y-4">
+        <div class="bg-blue-50 border border-blue-200 rounded-xl p-3 text-xs text-blue-900 flex items-start gap-2">
+          <i class="fa-solid fa-shield-halved text-base text-blue-600 mt-0.5"></i>
+          <div>
+            <span class="font-bold">Single-System Security Active:</span>
+            <p class="text-[11px] text-blue-800 mt-0.5">Only one device can be logged in at a time. If logged in elsewhere, any previous active system will be logged out automatically.</p>
+          </div>
+        </div>
+
+        <div id="login-error" class="hidden p-3 bg-red-50 border border-red-200 text-red-700 rounded-xl text-xs font-semibold"></div>
+
+        <form onsubmit="handleLogin(event)" class="space-y-3">
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">User ID</label>
+            <div class="relative">
+              <i class="fa-solid fa-user absolute left-3 top-3 text-slate-400 text-xs"></i>
+              <input type="text" id="login-userid" value="12345" required placeholder="Enter User ID (12345)" class="w-full pl-9 pr-3 py-2.5 text-xs bg-slate-50 border border-slate-300 rounded-xl font-semibold text-slate-900 focus:bg-white focus:ring-2 focus:ring-orange-500 focus:outline-none">
+            </div>
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">Password</label>
+            <div class="relative">
+              <i class="fa-solid fa-lock absolute left-3 top-3 text-slate-400 text-xs"></i>
+              <input type="password" id="login-password" value="12345" required placeholder="Enter Password (12345)" class="w-full pl-9 pr-3 py-2.5 text-xs bg-slate-50 border border-slate-300 rounded-xl font-semibold text-slate-900 focus:bg-white focus:ring-2 focus:ring-orange-500 focus:outline-none">
+            </div>
+          </div>
+          <button type="submit" id="btn-login-submit" class="w-full py-3 bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-700 hover:to-amber-700 text-white font-bold rounded-xl text-xs shadow-lg shadow-orange-600/30 transition flex items-center justify-center gap-2">
+            <i class="fa-solid fa-right-to-bracket"></i>
+            <span>Login to POS Dashboard</span>
+          </button>
+        </form>
+
+        <div class="text-center pt-2 border-t border-slate-100">
+          <div class="text-[10px] text-slate-400">
+            Default Credentials: User ID: <strong class="text-slate-700">12345</strong> | Password: <strong class="text-slate-700">12345</strong>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= 2. TOP APPLICATION NAVBAR ================= -->
+  <header class="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center justify-between h-16">
+        <!-- Logo & Restaurant Title -->
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-600 to-orange-500 flex items-center justify-center text-white shadow-md shadow-orange-500/20 text-lg">
+            🍲
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <h1 class="font-black text-lg text-slate-900 leading-tight" id="header-rest-name">Spice Garden</h1>
+              <span class="text-[11px] bg-orange-100 text-orange-800 font-bold px-2 py-0.5 rounded-full">POS & CRM</span>
+            </div>
+            <p class="text-xs text-slate-500">
+              <span id="header-rest-address">Sector 62, Noida, UP</span> • GSTIN: <span class="font-mono font-medium text-slate-700" id="header-rest-gst">09ABCDE1234F1Z5</span>
+            </p>
+          </div>
+        </div>
+
+        <!-- APTAIC Developer Branding Badge -->
+        <div class="hidden md:flex items-center gap-2 px-3 py-1.5 bg-slate-900 text-white rounded-xl shadow-sm border border-slate-800">
+          <img src="/assets/aptaic_logo.png" alt="Aptaic Logo" class="w-6 h-6 rounded-full object-contain bg-white p-0.5">
+          <div class="text-left">
+            <span class="text-[10px] text-orange-400 font-black tracking-wide block uppercase leading-none">Developed By APTAIC</span>
+            <span class="text-[9px] text-slate-300 font-medium">Think Digital. Think APTAIC</span>
+          </div>
+        </div>
+
+        <!-- Live Quick Stats Badges -->
+        <div class="hidden xl:flex items-center gap-3 text-xs bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-xl">
+          <div class="flex items-center gap-1.5">
+            <span class="text-slate-500">Tables:</span>
+            <span class="font-bold text-slate-800" id="stat-tables-avail">0</span>
+            <span class="text-[10px] text-slate-400">free</span>
+          </div>
+          <span class="text-slate-200">|</span>
+          <div class="flex items-center gap-1.5">
+            <span class="text-slate-500">Active:</span>
+            <span class="font-bold text-orange-600" id="stat-active-orders">0</span>
+          </div>
+          <span class="text-slate-200">|</span>
+          <div class="flex items-center gap-1.5">
+            <span id="low-stock-dot" class="w-2 h-2 rounded-full bg-emerald-500"></span>
+            <span id="stat-inventory-status" class="font-semibold text-slate-800">Optimal</span>
+          </div>
+        </div>
+
+        <!-- Action & Session Buttons -->
+        <div class="flex items-center gap-2">
+          <button onclick="openSettingsModal()" title="Edit Restaurant Profile & Payment QR" class="text-xs flex items-center gap-1.5 px-3 py-1.5 bg-orange-50 hover:bg-orange-100 text-orange-700 font-semibold rounded-lg border border-orange-200 transition">
+            <i class="fa-solid fa-gear"></i>
+            <span class="hidden sm:inline">Settings & UPI</span>
+          </button>
+          <button onclick="resetData()" title="Reset database to initial demo seed" class="text-xs flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium rounded-lg transition">
+            <i class="fa-solid fa-rotate-left"></i>
+            <span class="hidden sm:inline">Reset</span>
+          </button>
+          <!-- Single User Logout Button -->
+          <button onclick="handleLogout()" title="Logout of current system" class="text-xs flex items-center gap-1.5 px-3 py-1.5 bg-red-50 hover:bg-red-100 text-red-700 font-bold rounded-lg border border-red-200 transition">
+            <i class="fa-solid fa-power-off"></i>
+            <span class="hidden sm:inline">Logout</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Navigation Tabs -->
+      <nav class="flex space-x-1 sm:space-x-3 border-t border-slate-100 overflow-x-auto py-2 text-xs font-medium">
+        <button onclick="switchTab('pos')" id="tab-pos" class="tab-btn px-3 py-1.5 rounded-lg flex items-center gap-2 bg-orange-50 text-orange-700 font-semibold border border-orange-200">
+          <i class="fa-solid fa-cash-register"></i> POS Terminal
+        </button>
+        <button onclick="switchTab('tables')" id="tab-tables" class="tab-btn px-3 py-1.5 rounded-lg flex items-center gap-2 text-slate-600 hover:text-slate-900 hover:bg-slate-100">
+          <i class="fa-solid fa-chair"></i> Tables & Print QR
+        </button>
+        <button onclick="switchTab('menu-mgr')" id="tab-menu-mgr" class="tab-btn px-3 py-1.5 rounded-lg flex items-center gap-2 text-slate-600 hover:text-slate-900 hover:bg-slate-100">
+          <i class="fa-solid fa-bowl-food"></i> Menu Items
+        </button>
+        <button onclick="switchTab('qr-sim')" id="tab-qr-sim" class="tab-btn px-3 py-1.5 rounded-lg flex items-center gap-2 text-slate-600 hover:text-slate-900 hover:bg-slate-100">
+          <i class="fa-solid fa-qrcode"></i> QR Menu Simulator
+        </button>
+        <button onclick="switchTab('kitchen')" id="tab-kitchen" class="tab-btn px-3 py-1.5 rounded-lg flex items-center gap-2 text-slate-600 hover:text-slate-900 hover:bg-slate-100">
+          <i class="fa-solid fa-fire-burner"></i> Kitchen (KDS)
+        </button>
+        <button onclick="switchTab('inventory')" id="tab-inventory" class="tab-btn px-3 py-1.5 rounded-lg flex items-center gap-2 text-slate-600 hover:text-slate-900 hover:bg-slate-100">
+          <i class="fa-solid fa-boxes-stacked"></i> Inventory & BOM
+        </button>
+        <button onclick="switchTab('invoices')" id="tab-invoices" class="tab-btn px-3 py-1.5 rounded-lg flex items-center gap-2 text-slate-600 hover:text-slate-900 hover:bg-slate-100">
+          <i class="fa-solid fa-receipt"></i> GST Invoices
+        </button>
+        <!-- NEW: Comprehensive Reports Module -->
+        <button onclick="switchTab('reports')" id="tab-reports" class="tab-btn px-3 py-1.5 rounded-lg flex items-center gap-2 text-slate-600 hover:text-slate-900 hover:bg-slate-100">
+          <i class="fa-solid fa-chart-line text-emerald-600"></i> Reports & Analytics
+        </button>
+        <button onclick="switchTab('customers-staff')" id="tab-customers-staff" class="tab-btn px-3 py-1.5 rounded-lg flex items-center gap-2 text-slate-600 hover:text-slate-900 hover:bg-slate-100">
+          <i class="fa-solid fa-users"></i> CRM & Staff
+        </button>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Alert Banner Container -->
+  <div id="alert-container" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-3 hidden"></div>
+
+  <!-- MAIN APPLICATION CONTENT AREA -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 flex-1 w-full">
+
+    <!-- VIEW 1: POS TERMINAL -->
+    <section id="view-pos" class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      <div class="lg:col-span-7 xl:col-span-8 flex flex-col gap-4">
+        <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-3">
+          <div class="relative w-full sm:w-72">
+            <i class="fa-solid fa-magnifying-glass absolute left-3 top-3 text-slate-400 text-sm"></i>
+            <input type="text" id="menu-search" placeholder="Search dishes (Tikka, Biryani)..." oninput="renderPOSMenu()" class="w-full pl-9 pr-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:bg-white transition">
+          </div>
+          <div class="flex items-center gap-2">
+            <div class="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0" id="category-filters"></div>
+            <button onclick="openMenuModal()" class="text-xs bg-orange-600 text-white font-semibold px-3 py-2 rounded-lg hover:bg-orange-700 flex items-center gap-1.5 whitespace-nowrap shadow-sm">
+              <i class="fa-solid fa-plus"></i> Add Dish
+            </button>
+          </div>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4" id="pos-menu-grid"></div>
+      </div>
+
+      <!-- Right: Cart & Settle -->
+      <div class="lg:col-span-5 xl:col-span-4">
+        <div class="bg-white rounded-xl border border-slate-200 shadow-sm flex flex-col h-[calc(100vh-14rem)] sticky top-28">
+          <div class="p-4 border-b border-slate-200 bg-slate-50 rounded-t-xl">
+            <div class="flex items-center justify-between mb-3">
+              <span class="font-bold text-slate-900 text-sm flex items-center gap-1.5">
+                <i class="fa-solid fa-file-invoice text-orange-500"></i> Active Ticket
+              </span>
+              <span class="text-xs bg-orange-100 text-orange-800 font-semibold px-2 py-0.5 rounded" id="cart-item-count">0 items</span>
+            </div>
+            <div class="grid grid-cols-2 gap-2 text-xs">
+              <div>
+                <label class="block text-slate-500 font-medium mb-1">Select Table:</label>
+                <select id="cart-table-select" class="w-full bg-white border border-slate-300 rounded-md p-1.5 font-medium text-slate-800 focus:ring-1 focus:ring-orange-500">
+                  <option value="">Takeaway / Walk-in</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-slate-500 font-medium mb-1">Customer:</label>
+                <select id="cart-customer-select" class="w-full bg-white border border-slate-300 rounded-md p-1.5 font-medium text-slate-800 focus:ring-1 focus:ring-orange-500">
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div class="flex-1 overflow-y-auto p-4 space-y-3" id="cart-items-container"></div>
+
+          <div class="p-4 border-t border-slate-200 bg-slate-50/70 rounded-b-xl space-y-2 text-xs">
+            <div class="flex justify-between text-slate-600">
+              <span>Item Subtotal:</span>
+              <span class="font-medium text-slate-900" id="cart-subtotal">₹0.00</span>
+            </div>
+            <div class="flex justify-between text-slate-600">
+              <span class="flex items-center gap-1">CGST</span>
+              <span class="font-medium text-slate-900" id="cart-cgst">₹0.00</span>
+            </div>
+            <div class="flex justify-between text-slate-600">
+              <span class="flex items-center gap-1">SGST</span>
+              <span class="font-medium text-slate-900" id="cart-sgst">₹0.00</span>
+            </div>
+            <div class="border-t border-slate-200 pt-2 flex justify-between items-baseline">
+              <span class="font-bold text-slate-900 text-sm">Grand Total (Incl. GST):</span>
+              <span class="font-extrabold text-orange-600 text-base" id="cart-grand-total">₹0.00</span>
+            </div>
+
+            <div class="grid grid-cols-2 gap-2 pt-2">
+              <button onclick="placeOrder('pending')" id="btn-send-kot" disabled class="w-full py-2 px-3 bg-amber-600 hover:bg-amber-700 disabled:opacity-50 text-white font-semibold rounded-lg text-xs flex items-center justify-center gap-1.5 shadow-sm transition">
+                <i class="fa-solid fa-fire"></i> Send to Kitchen
+              </button>
+              <button onclick="openPaymentModalForCart()" id="btn-settle-cart" disabled class="w-full py-2 px-3 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-semibold rounded-lg text-xs flex items-center justify-center gap-1.5 shadow-sm transition">
+                <i class="fa-solid fa-circle-check"></i> Settle & Print
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- VIEW 2: TABLES & PRINTABLE QR CODES -->
+    <section id="view-tables" class="hidden space-y-6">
+      <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+        <div>
+          <h2 class="text-base font-bold text-slate-900">Restaurant Floor & Table QR Standees</h2>
+          <p class="text-xs text-slate-500">Manage dining tables and generate printable QR code acrylic tent cards for guest contactless ordering.</p>
+        </div>
+        <div class="flex items-center gap-2 text-xs">
+          <button onclick="openTableModal()" class="px-3 py-1.5 bg-orange-600 text-white font-semibold rounded-lg hover:bg-orange-700 flex items-center gap-1.5 shadow-sm">
+            <i class="fa-solid fa-plus"></i> Add Table
+          </button>
+          <button onclick="exportModuleReport('tables')" class="px-3 py-1.5 bg-emerald-600 text-white font-semibold rounded-lg hover:bg-emerald-700 flex items-center gap-1.5 shadow-sm">
+            <i class="fa-solid fa-file-csv"></i> Export Tables CSV
+          </button>
+          <button onclick="printAllTableStandees()" class="px-3 py-1.5 bg-slate-800 text-white font-semibold rounded-lg hover:bg-slate-900 flex items-center gap-1.5 shadow-sm">
+            <i class="fa-solid fa-print"></i> Print All QR Tent Cards
+          </button>
+        </div>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5" id="tables-container"></div>
+    </section>
+
+    <!-- VIEW 3: MENU MANAGER (FULL CRUD) -->
+    <section id="view-menu-mgr" class="hidden space-y-6">
+      <div class="flex items-center justify-between bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+        <div>
+          <h2 class="text-base font-bold text-slate-900">Menu Dish Management</h2>
+          <p class="text-xs text-slate-500">Add, edit pricing, update GST slabs (5%/12%), and manage dish details.</p>
+        </div>
+        <div class="flex items-center gap-2">
+          <button onclick="exportModuleReport('menu')" class="px-3.5 py-2 bg-emerald-600 text-white font-semibold rounded-lg text-xs hover:bg-emerald-700 flex items-center gap-1.5 shadow-sm">
+            <i class="fa-solid fa-file-csv"></i> Export Menu CSV
+          </button>
+          <button onclick="openMenuModal()" class="px-3.5 py-2 bg-orange-600 text-white font-semibold rounded-lg text-xs hover:bg-orange-700 flex items-center gap-1.5 shadow-sm">
+            <i class="fa-solid fa-plus"></i> Add New Dish
+          </button>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs text-slate-600">
+            <thead class="bg-slate-100 text-slate-700 font-semibold uppercase text-[10px] tracking-wider border-b border-slate-200">
+              <tr>
+                <th class="py-3 px-4">Dish Name</th>
+                <th class="py-3 px-4">Category</th>
+                <th class="py-3 px-4">Price (₹)</th>
+                <th class="py-3 px-4">GST Rate</th>
+                <th class="py-3 px-4">Servings In Stock</th>
+                <th class="py-3 px-4">Type</th>
+                <th class="py-3 px-4 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="menu-mgr-table-body" class="divide-y divide-slate-100"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- VIEW 4: QR MENU SIMULATOR (MOBILE VIEW) -->
+    <section id="view-qr-sim" class="hidden">
+      <div class="max-w-md mx-auto bg-slate-900 p-4 rounded-[2.5rem] shadow-2xl border-4 border-slate-700">
+        <div class="w-36 h-4 bg-slate-700 rounded-full mx-auto mb-3 flex items-center justify-center">
+          <div class="w-3 h-3 rounded-full bg-slate-900 mr-2"></div>
+          <div class="w-12 h-1.5 bg-slate-800 rounded-full"></div>
+        </div>
+
+        <div class="bg-white rounded-3xl overflow-hidden min-h-[600px] flex flex-col text-slate-800">
+          <div class="bg-gradient-to-r from-orange-600 to-amber-600 p-4 text-white">
+            <div class="flex justify-between items-center text-xs opacity-90 mb-2">
+              <span>Table <strong id="sim-table-num" class="font-bold">T1</strong></span>
+              <span class="bg-black/20 px-2 py-0.5 rounded text-[10px]">Contactless QR Order</span>
+            </div>
+            <h3 class="font-bold text-lg leading-tight" id="sim-rest-name">Spice Garden</h3>
+            <p class="text-[11px] opacity-80" id="sim-rest-address">Sector 62, Noida • Pure Authentic Delights</p>
+          </div>
+
+          <div class="p-3 bg-orange-50/70 border-b border-orange-100 text-xs flex gap-2">
+            <input type="text" id="sim-guest-name" value="Amit Verma" placeholder="Your Name" class="w-1/2 p-1.5 text-xs bg-white border border-orange-200 rounded">
+            <input type="tel" id="sim-guest-phone" value="8888882222" placeholder="Phone" class="w-1/2 p-1.5 text-xs bg-white border border-orange-200 rounded">
+          </div>
+
+          <div class="flex-1 p-3 overflow-y-auto space-y-2.5 max-h-[360px]" id="sim-menu-list"></div>
+
+          <div class="p-3 bg-white border-t border-slate-200 shadow-lg">
+            <div class="flex justify-between text-xs font-semibold mb-2">
+              <span id="sim-cart-count">0 items selected</span>
+              <span class="text-orange-600 text-sm font-bold" id="sim-cart-total">₹0.00</span>
+            </div>
+            <button onclick="submitQRSimOrder()" class="w-full py-2.5 bg-orange-600 hover:bg-orange-700 text-white font-bold rounded-xl text-xs flex items-center justify-center gap-2 shadow-md">
+              <i class="fa-solid fa-paper-plane"></i> Place Order via QR
+            </button>
+            <p class="text-[10px] text-center text-slate-400 mt-1">Orders go directly to Spice Garden Kitchen</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- VIEW 5: KITCHEN DISPLAY (KDS) -->
+    <section id="view-kitchen" class="hidden space-y-6">
+      <div class="flex items-center justify-between bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+        <div>
+          <h2 class="text-base font-bold text-slate-900 flex items-center gap-2">
+            <i class="fa-solid fa-fire text-amber-500"></i> Kitchen Order Tickets (KOT)
+          </h2>
+          <p class="text-xs text-slate-500">Live order queue for Chef Ramesh and kitchen staff.</p>
+        </div>
+        <div class="flex items-center gap-2">
+          <button onclick="exportModuleReport('kitchen')" class="text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-semibold px-3 py-1.5 rounded-lg flex items-center gap-1.5 shadow-sm">
+            <i class="fa-solid fa-file-csv"></i> Export KDS Orders CSV
+          </button>
+          <button onclick="fetchOrders()" class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded-lg flex items-center gap-1.5">
+            <i class="fa-solid fa-arrows-rotate"></i> Refresh Queue
+          </button>
+        </div>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5" id="kds-orders-container"></div>
+    </section>
+
+    <!-- VIEW 6: INVENTORY & RECIPE BOM -->
+    <section id="view-inventory" class="hidden space-y-6">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+          <div class="text-slate-500 text-xs font-medium mb-1">Tracked Raw Materials</div>
+          <div class="text-2xl font-bold text-slate-900" id="inv-total-count">0 items</div>
+          <div class="text-xs text-slate-400 mt-1">Managed with recipe bill of materials</div>
+        </div>
+        <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+          <div class="text-slate-500 text-xs font-medium mb-1">Low Stock Alerts</div>
+          <div class="text-2xl font-bold text-emerald-600" id="inv-low-count">0 items</div>
+          <div class="text-xs text-slate-400 mt-1">Below safety threshold (min_stock)</div>
+        </div>
+        <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+          <div class="text-slate-500 text-xs font-medium mb-1">Inventory Valuation</div>
+          <div class="text-2xl font-bold text-slate-900" id="inv-total-value">₹0</div>
+          <div class="text-xs text-slate-400 mt-1">Cost valuation of current inventory</div>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="p-4 border-b border-slate-200 flex justify-between items-center bg-slate-50">
+          <div>
+            <h3 class="font-bold text-sm text-slate-900">Raw Material Stock Levels</h3>
+            <p class="text-xs text-slate-500">Auto-deducted in real-time when dishes are ordered.</p>
+          </div>
+          <div class="flex items-center gap-2">
+            <button onclick="exportModuleReport('inventory')" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-lg text-xs flex items-center gap-1.5 shadow-sm">
+              <i class="fa-solid fa-file-csv"></i> Export Stock CSV
+            </button>
+            <button onclick="openInventoryModal()" class="px-3 py-1.5 bg-orange-600 text-white font-semibold rounded-lg text-xs hover:bg-orange-700 flex items-center gap-1.5">
+              <i class="fa-solid fa-plus"></i> Add Raw Material
+            </button>
+          </div>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs text-slate-600">
+            <thead class="bg-slate-100 text-slate-700 font-semibold uppercase text-[10px] tracking-wider border-b border-slate-200">
+              <tr>
+                <th class="py-3 px-4">Item Name</th>
+                <th class="py-3 px-4">Current Stock</th>
+                <th class="py-3 px-4">Min. Threshold</th>
+                <th class="py-3 px-4">Status</th>
+                <th class="py-3 px-4">Unit Cost</th>
+                <th class="py-3 px-4">Valuation</th>
+                <th class="py-3 px-4 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="inventory-table-body" class="divide-y divide-slate-100"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="p-4 border-b border-slate-200 bg-slate-50 flex justify-between items-center">
+          <div>
+            <h3 class="font-bold text-sm text-slate-900 flex items-center gap-2">
+              <i class="fa-solid fa-mortar-pestle text-orange-500"></i> Recipe Bill of Materials (BOM)
+            </h3>
+            <p class="text-xs text-slate-500">Defines exact raw material consumption required per portion of each dish.</p>
+          </div>
+          <div class="flex items-center gap-2">
+            <button onclick="exportModuleReport('recipes')" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-lg text-xs flex items-center gap-1.5 shadow-sm">
+              <i class="fa-solid fa-file-csv"></i> Export BOM CSV
+            </button>
+            <button onclick="openRecipeModal()" class="px-3 py-1.5 bg-slate-800 text-white font-semibold rounded-lg text-xs hover:bg-slate-900 flex items-center gap-1.5">
+              <i class="fa-solid fa-plus"></i> Add Recipe Link
+            </button>
+          </div>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs text-slate-600">
+            <thead class="bg-slate-100 text-slate-700 font-semibold uppercase text-[10px] tracking-wider border-b border-slate-200">
+              <tr>
+                <th class="py-3 px-4">Menu Dish</th>
+                <th class="py-3 px-4">Required Raw Material</th>
+                <th class="py-3 px-4">Qty per Serving</th>
+                <th class="py-3 px-4">Deduction Rule</th>
+                <th class="py-3 px-4 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="recipe-table-body" class="divide-y divide-slate-100"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- VIEW 7: GST INVOICES & BILLING -->
+    <section id="view-invoices" class="hidden space-y-6">
+      <div class="flex items-center justify-between bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+        <div>
+          <h2 class="text-base font-bold text-slate-900">Tax Invoices (GST Compliant with UPI QR)</h2>
+          <p class="text-xs text-slate-500">Dual printing supported: Thermal 80mm roll printer and Standard A4/A5 printer.</p>
+        </div>
+        <div class="flex items-center gap-2">
+          <button onclick="exportModuleReport('invoices')" class="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-lg text-xs flex items-center gap-1.5 shadow-sm">
+            <i class="fa-solid fa-file-csv"></i> Export Invoices CSV
+          </button>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs text-slate-600">
+            <thead class="bg-slate-100 text-slate-700 font-semibold uppercase text-[10px] tracking-wider border-b border-slate-200">
+              <tr>
+                <th class="py-3 px-4">Invoice No</th>
+                <th class="py-3 px-4">Order ID</th>
+                <th class="py-3 px-4">Date</th>
+                <th class="py-3 px-4">Customer</th>
+                <th class="py-3 px-4">CGST (₹)</th>
+                <th class="py-3 px-4">SGST (₹)</th>
+                <th class="py-3 px-4">Total Tax (₹)</th>
+                <th class="py-3 px-4">Payment</th>
+                <th class="py-3 px-4 text-right">Receipt Action</th>
+              </tr>
+            </thead>
+            <tbody id="invoices-table-body" class="divide-y divide-slate-100"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- VIEW 8: COMPREHENSIVE REPORTS FOR ALL MODULES -->
+    <section id="view-reports" class="hidden space-y-6">
+      <!-- Report Header & Modular Export Hub -->
+      <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm space-y-4">
+        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div>
+            <div class="flex items-center gap-2">
+              <h2 class="text-base font-bold text-slate-900">Comprehensive Management Reports</h2>
+              <span class="text-xs bg-emerald-100 text-emerald-800 font-bold px-2.5 py-0.5 rounded-full">All Modules</span>
+            </div>
+            <p class="text-xs text-slate-500 mt-0.5">Auditing, financial sales, GST liability, dish ranking, inventory consumption & payroll.</p>
+          </div>
+          <div class="flex flex-wrap items-center gap-2 text-xs">
+            <button onclick="printReports()" class="px-3.5 py-2 bg-slate-800 hover:bg-slate-900 text-white font-semibold rounded-lg flex items-center gap-1.5 shadow-sm">
+              <i class="fa-solid fa-print"></i> Print Full Report
+            </button>
+            <button onclick="exportModuleReport('master')" class="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg flex items-center gap-1.5 shadow-sm">
+              <i class="fa-solid fa-file-excel"></i> Export All Modules (Master CSV)
+            </button>
+          </div>
+        </div>
+
+        <!-- Quick Export Buttons For Every Module -->
+        <div class="border-t border-slate-100 pt-3">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-[11px] font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+              <i class="fa-solid fa-download text-emerald-600"></i> Modular Report Exports:
+            </span>
+            <span class="text-[10px] text-slate-400">Click any module to download dedicated CSV</span>
+          </div>
+          <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2 text-xs">
+            <button onclick="exportModuleReport('sales')" class="px-2.5 py-1.5 bg-slate-50 hover:bg-emerald-50 hover:text-emerald-800 hover:border-emerald-300 border border-slate-200 text-slate-700 font-medium rounded-lg flex items-center justify-center gap-1.5 transition">
+              <i class="fa-solid fa-chart-pie text-emerald-600"></i> Sales & GST
+            </button>
+            <button onclick="exportModuleReport('invoices')" class="px-2.5 py-1.5 bg-slate-50 hover:bg-emerald-50 hover:text-emerald-800 hover:border-emerald-300 border border-slate-200 text-slate-700 font-medium rounded-lg flex items-center justify-center gap-1.5 transition">
+              <i class="fa-solid fa-receipt text-emerald-600"></i> GST Invoices
+            </button>
+            <button onclick="exportModuleReport('menu')" class="px-2.5 py-1.5 bg-slate-50 hover:bg-emerald-50 hover:text-emerald-800 hover:border-emerald-300 border border-slate-200 text-slate-700 font-medium rounded-lg flex items-center justify-center gap-1.5 transition">
+              <i class="fa-solid fa-utensils text-emerald-600"></i> Menu Items
+            </button>
+            <button onclick="exportModuleReport('tables')" class="px-2.5 py-1.5 bg-slate-50 hover:bg-emerald-50 hover:text-emerald-800 hover:border-emerald-300 border border-slate-200 text-slate-700 font-medium rounded-lg flex items-center justify-center gap-1.5 transition">
+              <i class="fa-solid fa-chair text-emerald-600"></i> Dining Tables
+            </button>
+            <button onclick="exportModuleReport('kitchen')" class="px-2.5 py-1.5 bg-slate-50 hover:bg-emerald-50 hover:text-emerald-800 hover:border-emerald-300 border border-slate-200 text-slate-700 font-medium rounded-lg flex items-center justify-center gap-1.5 transition">
+              <i class="fa-solid fa-fire text-emerald-600"></i> Kitchen KDS
+            </button>
+            <button onclick="exportModuleReport('inventory')" class="px-2.5 py-1.5 bg-slate-50 hover:bg-emerald-50 hover:text-emerald-800 hover:border-emerald-300 border border-slate-200 text-slate-700 font-medium rounded-lg flex items-center justify-center gap-1.5 transition">
+              <i class="fa-solid fa-boxes-stacked text-emerald-600"></i> Stock Valuation
+            </button>
+            <button onclick="exportModuleReport('recipes')" class="px-2.5 py-1.5 bg-slate-50 hover:bg-emerald-50 hover:text-emerald-800 hover:border-emerald-300 border border-slate-200 text-slate-700 font-medium rounded-lg flex items-center justify-center gap-1.5 transition">
+              <i class="fa-solid fa-mortar-pestle text-emerald-600"></i> Recipe BOM
+            </button>
+            <button onclick="exportModuleReport('customers')" class="px-2.5 py-1.5 bg-slate-50 hover:bg-emerald-50 hover:text-emerald-800 hover:border-emerald-300 border border-slate-200 text-slate-700 font-medium rounded-lg flex items-center justify-center gap-1.5 transition">
+              <i class="fa-solid fa-users text-emerald-600"></i> CRM Customers
+            </button>
+            <button onclick="exportModuleReport('staff')" class="px-2.5 py-1.5 bg-slate-50 hover:bg-emerald-50 hover:text-emerald-800 hover:border-emerald-300 border border-slate-200 text-slate-700 font-medium rounded-lg flex items-center justify-center gap-1.5 transition">
+              <i class="fa-solid fa-user-tie text-emerald-600"></i> Staff Payroll
+            </button>
+            <button onclick="exportAllModulesZipOrBatch()" class="px-2.5 py-1.5 bg-orange-50 hover:bg-orange-100 hover:border-orange-300 border border-orange-200 text-orange-800 font-bold rounded-lg flex items-center justify-center gap-1.5 transition">
+              <i class="fa-solid fa-cloud-arrow-down text-orange-600"></i> Batch All CSVs
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div id="printable-reports-container" class="space-y-6">
+        <!-- Top Metrics Cards -->
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+            <span class="text-[11px] text-slate-500 font-semibold uppercase tracking-wider block mb-1">Gross Revenue</span>
+            <span class="text-2xl font-black text-slate-900" id="rep-total-revenue">₹0.00</span>
+            <span class="text-[10px] text-emerald-600 block mt-1 font-medium">All settled orders</span>
+          </div>
+          <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+            <span class="text-[11px] text-slate-500 font-semibold uppercase tracking-wider block mb-1">Net Taxable Sales</span>
+            <span class="text-2xl font-black text-slate-900" id="rep-taxable-sales">₹0.00</span>
+            <span class="text-[10px] text-slate-400 block mt-1">Excluding taxes</span>
+          </div>
+          <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+            <span class="text-[11px] text-slate-500 font-semibold uppercase tracking-wider block mb-1">Total GST Collected</span>
+            <span class="text-2xl font-black text-orange-600" id="rep-total-tax">₹0.00</span>
+            <span class="text-[10px] text-slate-400 block mt-1" id="rep-tax-split">CGST ₹0 | SGST ₹0</span>
+          </div>
+          <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+            <span class="text-[11px] text-slate-500 font-semibold uppercase tracking-wider block mb-1">Average Order Value</span>
+            <span class="text-2xl font-black text-slate-900" id="rep-aov">₹0.00</span>
+            <span class="text-[10px] text-slate-400 block mt-1" id="rep-total-orders-count">0 orders total</span>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          <!-- Dish Popularity Ranking (7 cols) -->
+          <div class="lg:col-span-7 bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+            <div class="p-4 border-b border-slate-200 bg-slate-50 flex justify-between items-center">
+              <h3 class="font-bold text-xs uppercase text-slate-700 tracking-wider">Top Selling Dishes (Menu Performance)</h3>
+              <span class="text-[11px] text-slate-500">By Portions Sold</span>
+            </div>
+            <div class="overflow-x-auto">
+              <table class="w-full text-left text-xs text-slate-600">
+                <thead class="bg-slate-100 text-slate-700 font-semibold uppercase text-[10px] border-b">
+                  <tr>
+                    <th class="py-2.5 px-4">Dish</th>
+                    <th class="py-2.5 px-4">Category</th>
+                    <th class="py-2.5 px-4 text-center">Portions Sold</th>
+                    <th class="py-2.5 px-4 text-right">Total Revenue</th>
+                  </tr>
+                </thead>
+                <tbody id="rep-dish-tbody" class="divide-y divide-slate-100"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Payment Breakdown & Table Stats (5 cols) -->
+          <div class="lg:col-span-5 space-y-6">
+            <!-- Payment Methods -->
+            <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
+              <h3 class="font-bold text-xs uppercase text-slate-700 tracking-wider mb-3">Payment Method Breakdown</h3>
+              <div class="space-y-2 text-xs" id="rep-payments-container"></div>
+            </div>
+
+            <!-- Operations & Payroll -->
+            <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-4 space-y-2 text-xs">
+              <h3 class="font-bold text-xs uppercase text-slate-700 tracking-wider mb-2">Operations & Payroll Summary</h3>
+              <div class="flex justify-between py-1 border-b border-slate-100">
+                <span class="text-slate-500">Total Staff Employed:</span>
+                <span class="font-bold text-slate-800" id="rep-staff-count">0</span>
+              </div>
+              <div class="flex justify-between py-1 border-b border-slate-100">
+                <span class="text-slate-500">Monthly Payroll Expense:</span>
+                <span class="font-bold text-slate-800" id="rep-payroll-total">₹0</span>
+              </div>
+              <div class="flex justify-between py-1 border-b border-slate-100">
+                <span class="text-slate-500">Total Tables:</span>
+                <span class="font-bold text-slate-800" id="rep-tables-total">0</span>
+              </div>
+              <div class="flex justify-between py-1">
+                <span class="text-slate-500">Registered Customers (CRM):</span>
+                <span class="font-bold text-slate-800" id="rep-cust-count">0</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Inventory Consumption Report -->
+        <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+          <div class="p-4 border-b border-slate-200 bg-slate-50 flex justify-between items-center">
+            <h3 class="font-bold text-xs uppercase text-slate-700 tracking-wider">Inventory Valuation & Safety Stock Report</h3>
+            <span class="text-xs font-bold text-slate-800" id="rep-inv-valuation-text">Total Valuation: ₹0</span>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs text-slate-600">
+              <thead class="bg-slate-100 text-slate-700 font-semibold uppercase text-[10px] border-b">
+                <tr>
+                  <th class="py-2.5 px-4">Raw Material</th>
+                  <th class="py-2.5 px-4">Stock on Hand</th>
+                  <th class="py-2.5 px-4">Safety Threshold</th>
+                  <th class="py-2.5 px-4">Health Status</th>
+                  <th class="py-2.5 px-4">Unit Cost</th>
+                  <th class="py-2.5 px-4 text-right">Holding Value</th>
+                </tr>
+              </thead>
+              <tbody id="rep-inventory-tbody" class="divide-y divide-slate-100"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- VIEW 9: CUSTOMERS & STAFF -->
+    <section id="view-customers-staff" class="hidden grid grid-cols-1 lg:grid-cols-12 gap-6">
+      <div class="lg:col-span-7 bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="p-4 border-b border-slate-200 bg-slate-50 flex justify-between items-center">
+          <div>
+            <h3 class="font-bold text-sm text-slate-900">Customer Directory (CRM)</h3>
+            <p class="text-xs text-slate-500">Registered dining guests & corporate accounts.</p>
+          </div>
+          <div class="flex items-center gap-2">
+            <button onclick="exportModuleReport('customers')" class="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded text-xs flex items-center gap-1 shadow-sm">
+              <i class="fa-solid fa-file-csv"></i> Export Customers CSV
+            </button>
+            <button onclick="openCustomerModal()" class="px-2.5 py-1 bg-orange-600 text-white font-semibold rounded text-xs hover:bg-orange-700">
+              <i class="fa-solid fa-user-plus mr-1"></i> Add Customer
+            </button>
+          </div>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs text-slate-600">
+            <thead class="bg-slate-100 text-slate-700 font-semibold uppercase text-[10px] tracking-wider border-b border-slate-200">
+              <tr>
+                <th class="py-3 px-4">Name</th>
+                <th class="py-3 px-4">Contact</th>
+                <th class="py-3 px-4">City</th>
+                <th class="py-3 px-4">Orders</th>
+                <th class="py-3 px-4">Total Spend</th>
+                <th class="py-3 px-4 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="customers-table-body" class="divide-y divide-slate-100"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="lg:col-span-5 bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="p-4 border-b border-slate-200 bg-slate-50 flex justify-between items-center">
+          <div>
+            <h3 class="font-bold text-sm text-slate-900">Staff Members</h3>
+            <p class="text-xs text-slate-500">Roles, contacts & monthly payroll.</p>
+          </div>
+          <div class="flex items-center gap-2">
+            <button onclick="exportModuleReport('staff')" class="text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-semibold px-2.5 py-1 rounded-md flex items-center gap-1 shadow-sm">
+              <i class="fa-solid fa-file-csv"></i> Export Staff CSV
+            </button>
+            <button onclick="openStaffModal()" class="text-xs bg-orange-600 text-white font-medium px-2.5 py-1 rounded-md hover:bg-orange-700">
+              <i class="fa-solid fa-user-plus mr-1"></i> Add Staff
+            </button>
+          </div>
+        </div>
+        <div class="divide-y divide-slate-100" id="staff-list-container"></div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ================= 3. FOOTER BRANDING ================= -->
+  <footer class="mt-auto py-6 border-t border-slate-200 bg-white">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-500 gap-3">
+      <div class="flex items-center gap-2.5">
+        <img src="/assets/aptaic_logo.png" alt="Aptaic Logo" class="w-8 h-8 rounded-full object-contain border border-slate-200 shadow-sm">
+        <div>
+          <span class="font-black text-slate-800 block text-xs">Developed By APTAIC</span>
+          <span class="text-[10px] text-slate-400">Think Digital. Think APTAIC</span>
+        </div>
+      </div>
+      <div class="text-center sm:text-right text-[11px]">
+        <span class="font-semibold text-slate-700">Spice Garden POS & CRM System</span>
+        <span class="block text-[10px] text-slate-400">Protected with Single-Session Login Architecture</span>
+      </div>
+    </div>
+  </footer>
+
+  <!-- ================= 4. ALL MODALS ================= -->
+
+  <!-- MODAL: DUAL PRINT TAX INVOICE (THERMAL 80MM & NORMAL A4) -->
+  <div id="receipt-modal" class="fixed inset-0 bg-slate-900/60 z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-white rounded-2xl max-w-2xl w-full shadow-2xl overflow-hidden border border-slate-200 flex flex-col max-h-[92vh]">
+      <!-- Modal Top Bar with Dual Print Toggle -->
+      <div class="bg-slate-900 p-3 text-white flex flex-col sm:flex-row justify-between items-center gap-2">
+        <div class="flex items-center gap-2">
+          <i class="fa-solid fa-receipt text-orange-400"></i>
+          <span class="font-bold text-xs" id="receipt-modal-title">GST Tax Invoice</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <!-- Printer Format Selector Tabs -->
+          <div class="bg-slate-800 p-0.5 rounded-lg flex items-center text-xs">
+            <button onclick="setReceiptMode('normal')" id="btn-mode-normal" class="px-2.5 py-1 rounded-md font-bold bg-orange-600 text-white text-[11px] transition">
+              <i class="fa-solid fa-file-invoice mr-1"></i> Normal A4/A5
+            </button>
+            <button onclick="setReceiptMode('thermal')" id="btn-mode-thermal" class="px-2.5 py-1 rounded-md font-semibold text-slate-300 hover:text-white text-[11px] transition">
+              <i class="fa-solid fa-scroll mr-1"></i> Thermal 80mm
+            </button>
+          </div>
+          <!-- Direct Print Buttons -->
+          <button onclick="printCurrentReceipt()" class="text-xs bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-lg font-bold flex items-center gap-1 shadow-sm">
+            <i class="fa-solid fa-print"></i> Print
+          </button>
+          <button onclick="closeReceiptModal()" class="text-slate-400 hover:text-white text-base ml-2">✕</button>
+        </div>
+      </div>
+
+      <!-- Scrollable Preview Area -->
+      <div class="p-6 overflow-y-auto flex-1 bg-slate-50">
+        <!-- Normal A4 Layout Container -->
+        <div id="printable-receipt-normal" class="bg-white rounded-xl shadow-sm border border-slate-200 p-6"></div>
+
+        <!-- Thermal 80mm Layout Container -->
+        <div id="printable-receipt-thermal" class="hidden bg-white mx-auto shadow-md border border-slate-300 p-4 max-w-[320px]"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: TABLE QR CODE & PRINTABLE STANDEE -->
+  <div id="standee-modal" class="fixed inset-0 bg-slate-900/60 z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-white rounded-2xl max-w-md w-full shadow-2xl overflow-hidden border border-slate-200 flex flex-col max-h-[90vh]">
+      <div class="bg-slate-900 p-3 text-white flex justify-between items-center">
+        <span class="font-bold text-xs"><i class="fa-solid fa-qrcode mr-1 text-orange-400"></i> Table QR Acrylic Standee</span>
+        <div class="flex items-center gap-2">
+          <button onclick="printStandee()" class="text-xs bg-orange-600 hover:bg-orange-700 text-white px-3 py-1 rounded font-semibold flex items-center gap-1">
+            <i class="fa-solid fa-print"></i> Print Standee
+          </button>
+          <button onclick="closeStandeeModal()" class="text-slate-400 hover:text-white text-base ml-2">✕</button>
+        </div>
+      </div>
+      <div class="p-6 overflow-y-auto" id="printable-standee"></div>
+    </div>
+  </div>
+
+  <!-- MODAL: SETTLE PAYMENT & DYNAMIC UPI QR CODE -->
+  <div id="payment-modal" class="fixed inset-0 bg-slate-900/60 z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-white rounded-2xl max-w-md w-full shadow-2xl overflow-hidden border border-slate-200">
+      <div class="bg-slate-900 p-4 text-white flex justify-between items-center">
+        <div>
+          <h3 class="font-bold text-sm">Settle Bill & Payment QR</h3>
+          <p class="text-xs text-slate-400" id="pay-modal-order-desc">Order #101</p>
+        </div>
+        <button onclick="closePaymentModal()" class="text-slate-400 hover:text-white text-base">✕</button>
+      </div>
+
+      <div class="p-5 space-y-4">
+        <div class="bg-orange-50 border border-orange-200 rounded-xl p-3.5 text-center">
+          <span class="text-xs text-orange-800 font-medium uppercase tracking-wider">Payable Amount</span>
+          <div class="text-3xl font-extrabold text-orange-700 mt-0.5" id="pay-modal-amount">₹0.00</div>
+          <div class="text-[11px] text-orange-800/80 mt-0.5">Includes itemized CGST & SGST taxes</div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-2">Select Payment Mode:</label>
+          <div class="grid grid-cols-3 gap-2">
+            <label class="border border-slate-200 rounded-lg p-2.5 flex flex-col items-center justify-center cursor-pointer hover:border-orange-500 has-[:checked]:border-orange-600 has-[:checked]:bg-orange-50/50">
+              <input type="radio" name="pay-method" value="upi" checked onchange="togglePayMode('upi')" class="hidden">
+              <i class="fa-solid fa-qrcode text-base text-slate-700 mb-1"></i>
+              <span class="text-xs font-semibold">UPI / QR</span>
+            </label>
+            <label class="border border-slate-200 rounded-lg p-2.5 flex flex-col items-center justify-center cursor-pointer hover:border-orange-500 has-[:checked]:border-orange-600 has-[:checked]:bg-orange-50/50">
+              <input type="radio" name="pay-method" value="cash" onchange="togglePayMode('cash')" class="hidden">
+              <i class="fa-solid fa-money-bill-wave text-base text-slate-700 mb-1"></i>
+              <span class="text-xs font-semibold">Cash</span>
+            </label>
+            <label class="border border-slate-200 rounded-lg p-2.5 flex flex-col items-center justify-center cursor-pointer hover:border-orange-500 has-[:checked]:border-orange-600 has-[:checked]:bg-orange-50/50">
+              <input type="radio" name="pay-method" value="card" onchange="togglePayMode('card')" class="hidden">
+              <i class="fa-solid fa-credit-card text-base text-slate-700 mb-1"></i>
+              <span class="text-xs font-semibold">Card</span>
+            </label>
+          </div>
+        </div>
+
+        <div id="upi-qr-section" class="border border-orange-200 rounded-xl p-4 bg-orange-50/50 flex flex-col items-center text-center space-y-2">
+          <div class="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+            <i class="fa-brands fa-google-pay text-base text-blue-600"></i>
+            <span>Scan via GPay, PhonePe, Paytm, or BHIM</span>
+          </div>
+          <div class="w-44 h-44 bg-white border border-slate-300 rounded-xl p-2 shadow-sm flex items-center justify-center">
+            <img id="upi-qr-image" src="" alt="Dynamic UPI Payment QR Code" class="w-full h-full object-contain">
+          </div>
+          <div class="text-[11px] text-slate-600">
+            <p>UPI ID: <strong class="font-mono text-slate-900" id="upi-qr-vpa">spicegarden@upi</strong></p>
+            <p>Payee: <span id="upi-qr-payee">Spice Garden</span> • Amount: <strong id="upi-qr-amount-text" class="text-orange-700">₹0.00</strong></p>
+          </div>
+        </div>
+
+        <button onclick="confirmSettlement()" class="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs flex items-center justify-center gap-2 shadow-md">
+          <i class="fa-solid fa-check"></i> Settle Bill & Generate GST Tax Invoice
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: RESTOCK INVENTORY -->
+  <div id="restock-modal" class="fixed inset-0 bg-slate-900/60 z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-white rounded-2xl max-w-sm w-full p-5 shadow-2xl border border-slate-200 space-y-4">
+      <div class="flex justify-between items-center">
+        <h3 class="font-bold text-sm text-slate-900">Restock Material</h3>
+        <button onclick="closeRestockModal()" class="text-slate-400 hover:text-slate-700">✕</button>
+      </div>
+      <div>
+        <p class="text-xs text-slate-600 mb-1" id="restock-item-name">Restocking Material</p>
+        <div class="flex items-center gap-2">
+          <input type="number" id="restock-input-qty" step="any" min="0.1" class="w-full p-2 border border-slate-300 rounded text-sm focus:ring-1 focus:ring-orange-500" placeholder="Qty to add">
+          <span class="text-xs font-semibold text-slate-600" id="restock-unit">kg</span>
+        </div>
+      </div>
+      <button onclick="submitRestock()" class="w-full py-2 bg-orange-600 hover:bg-orange-700 text-white font-semibold rounded text-xs">
+        Confirm Restock
+      </button>
+    </div>
+  </div>
+
+  <!-- MODAL: ADD / EDIT MENU ITEM -->
+  <div id="menu-modal" class="fixed inset-0 bg-slate-900/60 z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-white rounded-2xl max-w-md w-full shadow-2xl overflow-hidden border border-slate-200">
+      <div class="bg-slate-900 p-4 text-white flex justify-between items-center">
+        <h3 class="font-bold text-sm" id="menu-modal-title">Add Menu Dish</h3>
+        <button onclick="closeMenuModal()" class="text-slate-400 hover:text-white text-base">✕</button>
+      </div>
+      <form onsubmit="saveMenuItem(event)" class="p-5 space-y-3 text-xs">
+        <input type="hidden" id="menu-id">
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">Dish Name *</label>
+          <input type="text" id="menu-name" required placeholder="e.g. Paneer Butter Masala" class="w-full p-2 border border-slate-300 rounded focus:ring-1 focus:ring-orange-500">
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">Category *</label>
+            <input type="text" id="menu-category" required placeholder="Starter, Main Course, etc." class="w-full p-2 border border-slate-300 rounded focus:ring-1 focus:ring-orange-500">
+          </div>
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">Price (₹) *</label>
+            <input type="number" id="menu-price" step="any" min="0" required placeholder="250" class="w-full p-2 border border-slate-300 rounded focus:ring-1 focus:ring-orange-500">
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">GST Tax Slab (%) *</label>
+            <select id="menu-gst" class="w-full p-2 border border-slate-300 rounded focus:ring-1 focus:ring-orange-500">
+              <option value="5">5% (Food & Beverages)</option>
+              <option value="12">12% (Cold Drinks / Packaged)</option>
+              <option value="18">18%</option>
+              <option value="0">0% (Exempt)</option>
+            </select>
+          </div>
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">Food Preference</label>
+            <select id="menu-is-veg" class="w-full p-2 border border-slate-300 rounded focus:ring-1 focus:ring-orange-500">
+              <option value="true">🟢 Vegetarian</option>
+              <option value="false">🔴 Non-Vegetarian</option>
+            </select>
+          </div>
+        </div>
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">Description</label>
+          <textarea id="menu-desc" rows="2" placeholder="Brief ingredients or preparation description..." class="w-full p-2 border border-slate-300 rounded focus:ring-1 focus:ring-orange-500"></textarea>
+        </div>
+        <div class="flex justify-end gap-2 pt-2 border-t">
+          <button type="button" onclick="closeMenuModal()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded">Cancel</button>
+          <button type="submit" class="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white font-semibold rounded">Save Dish</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: ADD / EDIT TABLE -->
+  <div id="table-modal" class="fixed inset-0 bg-slate-900/60 z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-white rounded-2xl max-w-sm w-full shadow-2xl overflow-hidden border border-slate-200">
+      <div class="bg-slate-900 p-4 text-white flex justify-between items-center">
+        <h3 class="font-bold text-sm" id="table-modal-title">Add Dining Table</h3>
+        <button onclick="closeTableModal()" class="text-slate-400 hover:text-white text-base">✕</button>
+      </div>
+      <form onsubmit="saveTable(event)" class="p-5 space-y-3 text-xs">
+        <input type="hidden" id="table-id">
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">Table Number *</label>
+          <input type="text" id="table-num" required placeholder="e.g. T4 or VIP-1" class="w-full p-2 border border-slate-300 rounded focus:ring-1 focus:ring-orange-500 font-bold">
+        </div>
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">Guest Seating Capacity</label>
+          <input type="number" id="table-capacity" min="1" max="50" value="4" class="w-full p-2 border border-slate-300 rounded focus:ring-1 focus:ring-orange-500">
+        </div>
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">Custom QR Menu URL (Optional)</label>
+          <input type="url" id="table-qr-url" placeholder="http://10.59.187.160:3000/menu.html?table=T4" class="w-full p-2 border border-slate-300 rounded focus:ring-1 focus:ring-orange-500">
+        </div>
+        <div class="flex justify-end gap-2 pt-2 border-t">
+          <button type="button" onclick="closeTableModal()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded">Cancel</button>
+          <button type="submit" class="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white font-semibold rounded">Save Table</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: ADD / EDIT RAW MATERIAL INVENTORY -->
+  <div id="inv-modal" class="fixed inset-0 bg-slate-900/60 z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-white rounded-2xl max-w-sm w-full shadow-2xl overflow-hidden border border-slate-200">
+      <div class="bg-slate-900 p-4 text-white flex justify-between items-center">
+        <h3 class="font-bold text-sm" id="inv-modal-title">Add Raw Material</h3>
+        <button onclick="closeInventoryModal()" class="text-slate-400 hover:text-white text-base">✕</button>
+      </div>
+      <form onsubmit="saveInventory(event)" class="p-5 space-y-3 text-xs">
+        <input type="hidden" id="inv-id">
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">Material Name *</label>
+          <input type="text" id="inv-name" required placeholder="e.g. Milk, Onions, Paneer" class="w-full p-2 border border-slate-300 rounded focus:ring-1 focus:ring-orange-500">
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">Measurement Unit *</label>
+            <input type="text" id="inv-unit" required placeholder="kg, pcs, ltr" class="w-full p-2 border border-slate-300 rounded focus:ring-1 focus:ring-orange-500">
+          </div>
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">Cost Price / Unit (₹)</label>
+            <input type="number" id="inv-price" step="any" min="0" value="50" class="w-full p-2 border border-slate-300 rounded focus:ring-1 focus:ring-orange-500">
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">Current Stock *</label>
+            <input type="number" id="inv-stock" step="any" min="0" value="10" required class="w-full p-2 border border-slate-300 rounded focus:ring-1 focus:ring-orange-500">
+          </div>
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">Min. Alert Level *</label>
+            <input type="number" id="inv-min-stock" step="any" min="0" value="5" required class="w-full p-2 border border-slate-300 rounded focus:ring-1 focus:ring-orange-500">
+          </div>
+        </div>
+        <div class="flex justify-end gap-2 pt-2 border-t">
+          <button type="button" onclick="closeInventoryModal()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded">Cancel</button>
+          <button type="submit" class="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white font-semibold rounded">Save Material</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: ADD / EDIT RECIPE BOM LINK -->
+  <div id="recipe-modal" class="fixed inset-0 bg-slate-900/60 z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-white rounded-2xl max-w-sm w-full shadow-2xl overflow-hidden border border-slate-200">
+      <div class="bg-slate-900 p-4 text-white flex justify-between items-center">
+        <h3 class="font-bold text-sm">Add Recipe Mapping (BOM)</h3>
+        <button onclick="closeRecipeModal()" class="text-slate-400 hover:text-white text-base">✕</button>
+      </div>
+      <form onsubmit="saveRecipe(event)" class="p-5 space-y-3 text-xs">
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">Select Menu Dish *</label>
+          <select id="recipe-menu-id" required class="w-full p-2 border border-slate-300 rounded focus:ring-1 focus:ring-orange-500 font-medium"></select>
+        </div>
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">Select Required Raw Material *</label>
+          <select id="recipe-inv-id" required class="w-full p-2 border border-slate-300 rounded focus:ring-1 focus:ring-orange-500 font-medium"></select>
+        </div>
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">Quantity Required per Serving *</label>
+          <input type="number" id="recipe-qty" step="any" min="0.001" required placeholder="e.g. 0.2" class="w-full p-2 border border-slate-300 rounded focus:ring-1 focus:ring-orange-500">
+          <span class="text-[11px] text-slate-400 mt-0.5 block">Amount deducted from inventory every time 1 portion of this dish is ordered.</span>
+        </div>
+        <div class="flex justify-end gap-2 pt-2 border-t">
+          <button type="button" onclick="closeRecipeModal()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded">Cancel</button>
+          <button type="submit" class="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white font-semibold rounded">Save Recipe Link</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: ADD / EDIT CUSTOMER -->
+  <div id="cust-modal" class="fixed inset-0 bg-slate-900/60 z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-white rounded-2xl max-w-sm w-full shadow-2xl overflow-hidden border border-slate-200">
+      <div class="bg-slate-900 p-4 text-white flex justify-between items-center">
+        <h3 class="font-bold text-sm" id="cust-modal-title">Add Customer</h3>
+        <button onclick="closeCustomerModal()" class="text-slate-400 hover:text-white text-base">✕</button>
+      </div>
+      <form onsubmit="saveCustomer(event)" class="p-5 space-y-3 text-xs">
+        <input type="hidden" id="cust-id">
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">Customer Name *</label>
+          <input type="text" id="cust-name" required placeholder="e.g. Rahul Sharma" class="w-full p-2 border border-slate-300 rounded focus:ring-1 focus:ring-orange-500">
+        </div>
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">Phone Number *</label>
+          <input type="tel" id="cust-phone" required placeholder="9999991111" class="w-full p-2 border border-slate-300 rounded focus:ring-1 focus:ring-orange-500 font-mono">
+        </div>
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">Email (Optional)</label>
+          <input type="email" id="cust-email" placeholder="guest@example.com" class="w-full p-2 border border-slate-300 rounded focus:ring-1 focus:ring-orange-500">
+        </div>
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">City / Address</label>
+          <input type="text" id="cust-address" placeholder="Noida" class="w-full p-2 border border-slate-300 rounded focus:ring-1 focus:ring-orange-500">
+        </div>
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">Customer GSTIN (For Corporate B2B Billing)</label>
+          <input type="text" id="cust-gst" placeholder="09AAAAA0000A1Z5" class="w-full p-2 border border-slate-300 rounded focus:ring-1 focus:ring-orange-500 font-mono">
+        </div>
+        <div class="flex justify-end gap-2 pt-2 border-t">
+          <button type="button" onclick="closeCustomerModal()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded">Cancel</button>
+          <button type="submit" class="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white font-semibold rounded">Save Customer</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: ADD / EDIT STAFF -->
+  <div id="staff-modal" class="fixed inset-0 bg-slate-900/60 z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-white rounded-2xl max-w-sm w-full shadow-2xl overflow-hidden border border-slate-200">
+      <div class="bg-slate-900 p-4 text-white flex justify-between items-center">
+        <h3 class="font-bold text-sm" id="staff-modal-title">Add Staff Member</h3>
+        <button onclick="closeStaffModal()" class="text-slate-400 hover:text-white text-base">✕</button>
+      </div>
+      <form onsubmit="saveStaff(event)" class="p-5 space-y-3 text-xs">
+        <input type="hidden" id="staff-id">
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">Staff Name *</label>
+          <input type="text" id="staff-name" required placeholder="e.g. Ramesh" class="w-full p-2 border border-slate-300 rounded focus:ring-1 focus:ring-orange-500">
+        </div>
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">Role *</label>
+          <input type="text" id="staff-role" required placeholder="Chef, Waiter, Captain, Manager" class="w-full p-2 border border-slate-300 rounded focus:ring-1 focus:ring-orange-500">
+        </div>
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">Phone Number</label>
+          <input type="tel" id="staff-phone" placeholder="7777771111" class="w-full p-2 border border-slate-300 rounded focus:ring-1 focus:ring-orange-500">
+        </div>
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">Monthly Salary (₹)</label>
+          <input type="number" id="staff-salary" min="0" value="15000" class="w-full p-2 border border-slate-300 rounded focus:ring-1 focus:ring-orange-500">
+        </div>
+        <div class="flex justify-end gap-2 pt-2 border-t">
+          <button type="button" onclick="closeStaffModal()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded">Cancel</button>
+          <button type="submit" class="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white font-semibold rounded">Save Staff</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: RESTAURANT & PAYMENT SETTINGS (EDIT RESTAURANT & UPI) -->
+  <div id="settings-modal" class="fixed inset-0 bg-slate-900/60 z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-white rounded-2xl max-w-lg w-full shadow-2xl overflow-hidden border border-slate-200">
+      <div class="bg-slate-900 p-4 text-white flex justify-between items-center">
+        <div>
+          <h3 class="font-bold text-sm">Restaurant Profile & Payment QR Settings</h3>
+          <p class="text-xs text-slate-400">Configure business information & UPI payment details</p>
+        </div>
+        <button onclick="closeSettingsModal()" class="text-slate-400 hover:text-white text-base">✕</button>
+      </div>
+      <form onsubmit="saveRestaurantSettings(event)" class="p-5 space-y-4 text-xs">
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">Restaurant Name *</label>
+            <input type="text" id="set-name" required class="w-full p-2 border border-slate-300 rounded focus:ring-1 focus:ring-orange-500">
+          </div>
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">GSTIN Number *</label>
+            <input type="text" id="set-gst" required class="w-full p-2 border border-slate-300 rounded focus:ring-1 focus:ring-orange-500 font-mono">
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">Phone Number *</label>
+            <input type="text" id="set-phone" required class="w-full p-2 border border-slate-300 rounded focus:ring-1 focus:ring-orange-500">
+          </div>
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">Address *</label>
+            <input type="text" id="set-address" required class="w-full p-2 border border-slate-300 rounded focus:ring-1 focus:ring-orange-500">
+          </div>
+        </div>
+        <!-- UPI Section -->
+        <div class="p-3 bg-orange-50 rounded-xl border border-orange-200 space-y-3">
+          <div class="font-bold text-orange-900 flex items-center gap-1.5">
+            <i class="fa-solid fa-qrcode text-orange-600"></i> UPI Payment Configuration
+          </div>
+          <p class="text-slate-600 text-[11px]">Customers scan this UPI QR code to pay bills directly to your cafe/restaurant bank account (GPay, PhonePe, Paytm).</p>
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block font-semibold text-slate-700 mb-1">UPI ID / VPA *</label>
+              <input type="text" id="set-upi-id" placeholder="e.g. 9876543210@paytm or name@okhdfcbank" required class="w-full p-2 bg-white border border-orange-300 rounded focus:ring-1 focus:ring-orange-500 font-mono">
+            </div>
+            <div>
+              <label class="block font-semibold text-slate-700 mb-1">Payee Name *</label>
+              <input type="text" id="set-upi-name" placeholder="e.g. Spice Garden" required class="w-full p-2 bg-white border border-orange-300 rounded focus:ring-1 focus:ring-orange-500">
+            </div>
+          </div>
+        </div>
+        <div class="flex justify-end gap-2 pt-2 border-t">
+          <button type="button" onclick="closeSettingsModal()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded">Cancel</button>
+          <button type="submit" class="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white font-semibold rounded">Save Settings</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- APPLICATION JAVASCRIPT LOGIC -->
+  <script>
+    let state = {
+      restaurant: {},
+      tables: [],
+      menu: [],
+      inventory: [],
+      recipes: [],
+      customers: [],
+      orders: [],
+      payments: [],
+      invoices: [],
+      staff: [],
+      cart: [],
+      reports: null,
+      activeCategory: 'All',
+      pendingSettlementOrderId: null,
+      activeRestockId: null,
+      activeInvoiceId: null,
+      receiptPrintMode: 'normal' // 'normal' | 'thermal'
+    };
+
+    let simCart = [];
+    let sessionToken = localStorage.getItem('apt_pos_token') || null;
+    let heartbeatInterval = null;
+
+    document.addEventListener('DOMContentLoaded', () => {
+      checkInitialAuth();
+    });
+
+    // ----------------- AUTH & SINGLE-SESSION ENFORCEMENT -----------------
+
+    function checkInitialAuth() {
+      if (sessionToken) {
+        verifySession();
+      } else {
+        showLoginOverlay();
+      }
+    }
+
+    async function handleLogin(e) {
+      e.preventDefault();
+      const userId = document.getElementById('login-userid').value.trim();
+      const password = document.getElementById('login-password').value.trim();
+      const errBox = document.getElementById('login-error');
+      errBox.classList.add('hidden');
+
+      const submitBtn = document.getElementById('btn-login-submit');
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = `<i class="fa-solid fa-spinner animate-spin"></i> Authenticating...`;
+
+      try {
+        const res = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            userId,
+            password,
+            deviceInfo: navigator.userAgent.substring(0, 80)
+          })
+        });
+
+        const data = await res.json();
+        if (!res.ok || !data.success) {
+          throw new Error(data.error || 'Authentication failed');
+        }
+
+        sessionToken = data.token;
+        localStorage.setItem('apt_pos_token', sessionToken);
+        document.getElementById('login-overlay').classList.add('hidden');
+
+        startHeartbeat();
+        await loadAllData();
+
+      } catch (err) {
+        errBox.textContent = err.message;
+        errBox.classList.remove('hidden');
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = `<i class="fa-solid fa-right-to-bracket"></i> <span>Login to POS Dashboard</span>`;
+      }
+    }
+
+    async function verifySession() {
+      try {
+        const res = await fetch('/api/auth/verify', {
+          headers: { 'Authorization': `Bearer ${sessionToken}` }
+        });
+        const data = await res.json();
+
+        if (res.ok && data.valid) {
+          document.getElementById('login-overlay').classList.add('hidden');
+          startHeartbeat();
+          await loadAllData();
+        } else {
+          handleSessionTerminated(data.error || 'Session expired');
+        }
+      } catch (err) {
+        console.error('Session verify error:', err);
+      }
+    }
+
+    function startHeartbeat() {
+      if (heartbeatInterval) clearInterval(heartbeatInterval);
+      // Check session validity every 3 seconds to ensure single system enforcement
+      heartbeatInterval = setInterval(async () => {
+        if (!sessionToken) return;
+        try {
+          const res = await fetch('/api/auth/verify', {
+            headers: { 'Authorization': `Bearer ${sessionToken}` }
+          });
+          const data = await res.json();
+          if (!res.ok || !data.valid) {
+            handleSessionTerminated(data.error || 'Logged in from another system.');
+          }
+        } catch (err) {
+          // network hiccup
+        }
+      }, 3000);
+    }
+
+    function handleSessionTerminated(msg) {
+      if (heartbeatInterval) clearInterval(heartbeatInterval);
+      sessionToken = null;
+      localStorage.removeItem('apt_pos_token');
+
+      showLoginOverlay();
+      const errBox = document.getElementById('login-error');
+      errBox.innerHTML = `
+        <div class="font-bold flex items-center gap-1.5 text-red-800">
+          <i class="fa-solid fa-triangle-exclamation"></i>
+          <span>Session Logged Out!</span>
+        </div>
+        <p class="text-[11px] mt-1 text-red-700">${msg}</p>
+      `;
+      errBox.classList.remove('hidden');
+    }
+
+    function showLoginOverlay() {
+      document.getElementById('login-overlay').classList.remove('hidden');
+    }
+
+    async function handleLogout() {
+      if (!confirm('Logout from Spice Garden POS?')) return;
+      if (sessionToken) {
+        try {
+          await fetch('/api/auth/logout', {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${sessionToken}` }
+          });
+        } catch (e) {}
+      }
+      if (heartbeatInterval) clearInterval(heartbeatInterval);
+      sessionToken = null;
+      localStorage.removeItem('apt_pos_token');
+      showLoginOverlay();
+    }
+
+    // ----------------- DATA LOADING -----------------
+
+    async function loadAllData() {
+      try {
+        const [resInfo, resTables, resMenu, resInv, resRecipes, resCustomers, resOrders, resInvoices, resStaff, resReports] = await Promise.all([
+          fetch('/api/restaurant').then(r => r.json()),
+          fetch('/api/tables').then(r => r.json()),
+          fetch('/api/menu').then(r => r.json()),
+          fetch('/api/inventory').then(r => r.json()),
+          fetch('/api/recipes').then(r => r.json()),
+          fetch('/api/customers').then(r => r.json()),
+          fetch('/api/orders').then(r => r.json()),
+          fetch('/api/invoices').then(r => r.json()),
+          fetch('/api/staff').then(r => r.json()),
+          fetch('/api/reports').then(r => r.json())
+        ]);
+
+        state.restaurant = resInfo.restaurant;
+        state.tables = resTables;
+        state.menu = resMenu;
+        state.inventory = resInv;
+        state.recipes = resRecipes;
+        state.customers = resCustomers;
+        state.orders = resOrders;
+        state.invoices = resInvoices;
+        state.staff = resStaff;
+        state.reports = resReports;
+
+        updateHeaderInfo();
+        populateCartSelectors();
+        renderCategoryFilters();
+        renderPOSMenu();
+        renderCart();
+        renderTablesView();
+        renderMenuManagerView();
+        renderSimMenu();
+        renderKDS();
+        renderInventoryView();
+        renderInvoicesView();
+        renderReportsView();
+        renderCustomersAndStaff();
+
+      } catch (err) {
+        console.error('Error fetching data:', err);
+        showAlert('Error loading restaurant data: ' + err.message, 'error');
+      }
+    }
+
+    function safeSetText(id, text) {
+      const el = document.getElementById(id);
+      if (el) el.textContent = (text !== undefined && text !== null) ? text : '';
+    }
+
+    function safeSetHtml(id, html) {
+      const el = document.getElementById(id);
+      if (el) el.innerHTML = (html !== undefined && html !== null) ? html : '';
+    }
+
+    function updateHeaderInfo() {
+      const rest = state.restaurant || {};
+      safeSetText('header-rest-name', rest.name || 'Spice Garden');
+      safeSetText('header-rest-address', rest.address || 'Sector 62, Noida, UP');
+      safeSetText('header-rest-gst', rest.gst_number || '09ABCDE1234F1Z5');
+
+      safeSetText('sim-rest-name', rest.name || 'Spice Garden');
+      safeSetText('sim-rest-address', `${rest.address || 'Sector 62, Noida'} • Authentic Delights`);
+
+      const availTables = (state.tables || []).filter(t => t.status === 'available').length;
+      safeSetText('stat-tables-avail', availTables);
+
+      const activeOrders = (state.orders || []).filter(o => o.status !== 'completed' && o.status !== 'cancelled').length;
+      safeSetText('stat-active-orders', activeOrders);
+
+      const lowStockCount = (state.inventory || []).filter(i => i.stock <= i.min_stock).length;
+      const lowStockDot = document.getElementById('low-stock-dot');
+      const invStatus = document.getElementById('stat-inventory-status');
+      if (lowStockDot && invStatus) {
+        if (lowStockCount > 0) {
+          lowStockDot.className = 'w-2 h-2 rounded-full bg-red-500 animate-ping';
+          invStatus.textContent = `${lowStockCount} Low Alert!`;
+          invStatus.className = 'text-red-600 font-bold';
+        } else {
+          lowStockDot.className = 'w-2 h-2 rounded-full bg-emerald-500';
+          invStatus.textContent = 'Optimal';
+          invStatus.className = 'text-slate-900';
+        }
+      }
+    }
+
+    function switchTab(tabName) {
+      const views = ['pos', 'tables', 'menu-mgr', 'qr-sim', 'kitchen', 'inventory', 'invoices', 'reports', 'customers-staff'];
+      views.forEach(v => {
+        const viewEl = document.getElementById(`view-${v}`);
+        const tabEl = document.getElementById(`tab-${v}`);
+        if (v === tabName) {
+          viewEl.classList.remove('hidden');
+          tabEl.className = 'tab-btn px-3 py-1.5 rounded-lg flex items-center gap-2 bg-orange-50 text-orange-700 font-semibold border border-orange-200';
+        } else {
+          viewEl.classList.add('hidden');
+          tabEl.className = 'tab-btn px-3 py-1.5 rounded-lg flex items-center gap-2 text-slate-600 hover:text-slate-900 hover:bg-slate-100';
+        }
+      });
+      if (tabName === 'reports') {
+        renderReportsView();
+      }
+    }
+
+    function showAlert(message, type = 'info') {
+      const container = document.getElementById('alert-container');
+      container.classList.remove('hidden');
+      const bg = type === 'error' ? 'bg-red-50 text-red-800 border-red-200' : 'bg-orange-50 text-orange-800 border-orange-200';
+      container.innerHTML = `
+        <div class="p-3 rounded-lg border ${bg} text-xs flex justify-between items-center shadow-sm">
+          <div class="flex items-center gap-2">
+            <i class="fa-solid fa-circle-info"></i>
+            <span>${message}</span>
+          </div>
+          <button onclick="document.getElementById('alert-container').classList.add('hidden')" class="font-bold opacity-60 hover:opacity-100">✕</button>
+        </div>
+      `;
+      setTimeout(() => { container.classList.add('hidden'); }, 6000);
+    }
+
+    // ----------------- DUAL RECEIPT PRINTING (THERMAL VS NORMAL) -----------------
+
+    function setReceiptMode(mode) {
+      state.receiptPrintMode = mode;
+      const btnNormal = document.getElementById('btn-mode-normal');
+      const btnThermal = document.getElementById('btn-mode-thermal');
+      const containerNormal = document.getElementById('printable-receipt-normal');
+      const containerThermal = document.getElementById('printable-receipt-thermal');
+
+      if (mode === 'thermal') {
+        btnThermal.className = 'px-2.5 py-1 rounded-md font-bold bg-orange-600 text-white text-[11px] transition';
+        btnNormal.className = 'px-2.5 py-1 rounded-md font-semibold text-slate-300 hover:text-white text-[11px] transition';
+        containerNormal.classList.add('hidden');
+        containerThermal.classList.remove('hidden');
+      } else {
+        btnNormal.className = 'px-2.5 py-1 rounded-md font-bold bg-orange-600 text-white text-[11px] transition';
+        btnThermal.className = 'px-2.5 py-1 rounded-md font-semibold text-slate-300 hover:text-white text-[11px] transition';
+        containerNormal.classList.remove('hidden');
+        containerThermal.classList.add('hidden');
+      }
+    }
+
+    async function openReceiptModal(invId) {
+      state.activeInvoiceId = invId;
+      const inv = state.invoices.find(i => i.invoice_id === invId);
+      if (!inv) return;
+
+      const order = inv.order || state.orders.find(o => o.order_id === inv.order_id);
+      const customer = inv.customer || (order ? state.customers.find(c => c.customer_id === order.customer_id) : null);
+      const restaurant = state.restaurant;
+
+      // Fetch dynamic UPI QR code
+      let upiQrImg = '';
+      try {
+        const qrRes = await fetch(`/api/qr/upi?order_id=${inv.order_id}&amount=${order ? order.grand_total : 0}`);
+        const qrData = await qrRes.json();
+        upiQrImg = qrData.qr_image || '';
+      } catch (err) {}
+
+      // 1. Normal A4 / A5 Layout
+      const normalHtml = `
+        <div class="space-y-5 text-slate-800 text-xs">
+          <!-- Header with Aptaic & Restaurant Branding -->
+          <div class="flex justify-between items-start border-b-2 border-slate-900 pb-4">
+            <div>
+              <h2 class="text-2xl font-black text-slate-900 uppercase tracking-tight">${restaurant.name || 'Spice Garden'}</h2>
+              <p class="text-slate-600 font-medium">${restaurant.address || 'Sector 62, Noida, UP'}</p>
+              <p class="text-slate-600">Phone: ${restaurant.phone || '9876543210'}</p>
+              <p class="font-black text-slate-900 mt-1">GSTIN: <span class="font-mono">${restaurant.gst_number || '09ABCDE1234F1Z5'}</span></p>
+            </div>
+            <div class="text-right flex flex-col items-end">
+              <span class="bg-slate-900 text-white font-black px-3 py-1 rounded uppercase tracking-wider text-xs">TAX INVOICE</span>
+              <div class="flex items-center gap-1.5 mt-2">
+                <img src="/assets/aptaic_logo.png" alt="Aptaic Logo" class="w-6 h-6 rounded-full object-contain">
+                <span class="text-[10px] text-slate-500 font-bold uppercase">Developed By APTAIC</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Metadata Grid -->
+          <div class="grid grid-cols-2 gap-4 bg-slate-50 p-3 rounded-xl border border-slate-200">
+            <div>
+              <p><strong>Invoice No:</strong> <span class="font-mono text-slate-900 font-bold">${inv.invoice_no}</span></p>
+              <p><strong>Invoice Date:</strong> ${inv.date}</p>
+              <p><strong>Table / Channel:</strong> ${order && order.table_id ? `Table ${order.table_number || 'T' + order.table_id}` : 'Takeaway / POS'}</p>
+            </div>
+            <div class="text-right">
+              <p><strong>Billed To:</strong> ${customer ? customer.name : 'Walk-in Guest'}</p>
+              <p><strong>Phone:</strong> ${customer ? customer.phone : 'N/A'}</p>
+              <p><strong>City / Address:</strong> ${customer ? customer.address : 'N/A'}</p>
+              ${customer && customer.gst_number ? `<p class="font-mono"><strong>Client GSTIN:</strong> ${customer.gst_number}</p>` : ''}
+            </div>
+          </div>
+
+          <!-- Item Table -->
+          <table class="w-full text-left border border-slate-200">
+            <thead class="bg-slate-100 text-slate-700 text-[10px] uppercase font-bold border-b border-slate-200">
+              <tr>
+                <th class="py-2 px-3">Item Description</th>
+                <th class="py-2 px-3 text-center">Qty</th>
+                <th class="py-2 px-3 text-right">Price</th>
+                <th class="py-2 px-3 text-right">Taxable</th>
+                <th class="py-2 px-3 text-right">CGST</th>
+                <th class="py-2 px-3 text-right">SGST</th>
+                <th class="py-2 px-3 text-right">Total (₹)</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100">
+              ${order && order.items ? order.items.map(item => {
+                const sub = item.price * item.qty;
+                const gst = sub * ((item.gst || 5) / 100);
+                const half = gst / 2;
+                return `
+                  <tr>
+                    <td class="py-2 px-3 font-semibold text-slate-900">${item.name}</td>
+                    <td class="py-2 px-3 text-center font-mono font-bold">${item.qty}</td>
+                    <td class="py-2 px-3 text-right font-mono">₹${item.price}</td>
+                    <td class="py-2 px-3 text-right font-mono font-bold">₹${sub.toFixed(2)}</td>
+                    <td class="py-2 px-3 text-right font-mono text-slate-600">₹${half.toFixed(2)}</td>
+                    <td class="py-2 px-3 text-right font-mono text-slate-600">₹${half.toFixed(2)}</td>
+                    <td class="py-2 px-3 text-right font-mono font-black text-slate-900">₹${(sub + gst).toFixed(2)}</td>
+                  </tr>
+                `;
+              }).join('') : ''}
+            </tbody>
+          </table>
+
+          <!-- Tax Summary & Net Total -->
+          <div class="flex justify-between items-start gap-4">
+            <div class="flex-1 border border-slate-200 bg-slate-50 rounded-xl p-3 flex items-center justify-between">
+              <div>
+                <span class="font-bold text-slate-900 block text-xs">OFFICIAL PAYMENT QR</span>
+                <span class="text-[10px] text-slate-500 block">Scan via GPay, PhonePe, Paytm, BHIM</span>
+                <span class="text-[10px] font-mono text-slate-700 block mt-1">UPI ID: <strong>${restaurant.upi_id || 'spicegarden@upi'}</strong></span>
+              </div>
+              ${upiQrImg ? `
+                <div class="w-20 h-20 bg-white border border-slate-300 rounded p-1 flex items-center justify-center">
+                  <img src="${upiQrImg}" alt="UPI QR" class="w-full h-full object-contain">
+                </div>
+              ` : ''}
+            </div>
+
+            <div class="w-64 space-y-1.5 text-xs">
+              <div class="flex justify-between text-slate-600">
+                <span>Taxable Amount:</span>
+                <span class="font-mono">₹${order ? order.total.toFixed(2) : '0.00'}</span>
+              </div>
+              <div class="flex justify-between text-slate-600">
+                <span>CGST:</span>
+                <span class="font-mono">₹${inv.cgst.toFixed(2)}</span>
+              </div>
+              <div class="flex justify-between text-slate-600">
+                <span>SGST:</span>
+                <span class="font-mono">₹${inv.sgst.toFixed(2)}</span>
+              </div>
+              <div class="flex justify-between font-bold text-slate-800 border-t border-slate-200 pt-1">
+                <span>Total Taxes:</span>
+                <span class="font-mono text-orange-600">₹${inv.total_tax.toFixed(2)}</span>
+              </div>
+              <div class="flex justify-between font-black text-base text-slate-900 border-t-2 border-slate-900 pt-1.5">
+                <span>GRAND TOTAL:</span>
+                <span class="font-mono text-orange-600">₹${order ? order.grand_total.toFixed(2) : '0.00'}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Normal Invoice Footer -->
+          <div class="border-t border-slate-200 pt-4 text-center text-slate-500 text-[10px] space-y-1">
+            <p>Thank you for visiting ${restaurant.name}! Please visit us again.</p>
+            <p class="font-mono font-medium">Software Developed By APTAIC • Think Digital. Think APTAIC</p>
+          </div>
+        </div>
+      `;
+
+      // 2. Thermal 80mm Layout (Monospace, Compact Receipt)
+      const thermalHtml = `
+        <div class="font-mono text-[11px] text-black leading-tight space-y-2 text-center">
+          <div class="border-b border-black pb-2">
+            <div class="font-black text-sm uppercase">*** ${restaurant.name || 'SPICE GARDEN'} ***</div>
+            <div>${restaurant.address || 'Sector 62, Noida'}</div>
+            <div>Ph: ${restaurant.phone || '9876543210'}</div>
+            <div>GSTIN: ${restaurant.gst_number || '09ABCDE1234F1Z5'}</div>
+            <div class="font-bold uppercase mt-1">TAX INVOICE / CASH RECEIPT</div>
+          </div>
+
+          <div class="text-left text-[10px] space-y-0.5 border-b border-black pb-1.5">
+            <div>INV#: ${inv.invoice_no} | DATE: ${inv.date}</div>
+            <div>TABLE: ${order && order.table_id ? `T${order.table_id}` : 'Takeaway'} | DINE-IN</div>
+            <div>GUEST: ${customer ? customer.name : 'Walk-in'}</div>
+          </div>
+
+          <!-- Item lines -->
+          <div class="text-left py-1 space-y-1 border-b border-dashed border-black">
+            <div class="flex justify-between font-bold text-[10px]">
+              <span>ITEM</span>
+              <span>QTY x RATE</span>
+              <span>AMT</span>
+            </div>
+            ${order && order.items ? order.items.map(item => `
+              <div class="flex justify-between text-[11px]">
+                <span class="truncate pr-1">${item.name}</span>
+                <span class="whitespace-nowrap">${item.qty} x ${item.price}</span>
+                <span class="font-bold">₹${(item.price * item.qty).toFixed(2)}</span>
+              </div>
+            `).join('') : ''}
+          </div>
+
+          <!-- Total Calculation -->
+          <div class="text-right space-y-0.5 text-[10px] border-b border-black pb-1.5 pt-1">
+            <div class="flex justify-between">
+              <span>Taxable Value:</span>
+              <span>₹${order ? order.total.toFixed(2) : '0.00'}</span>
+            </div>
+            <div class="flex justify-between">
+              <span>CGST:</span>
+              <span>₹${inv.cgst.toFixed(2)}</span>
+            </div>
+            <div class="flex justify-between">
+              <span>SGST:</span>
+              <span>₹${inv.sgst.toFixed(2)}</span>
+            </div>
+            <div class="flex justify-between font-black text-xs pt-1 border-t border-black">
+              <span>TOTAL (INCL. GST):</span>
+              <span>₹${order ? order.grand_total.toFixed(2) : '0.00'}</span>
+            </div>
+          </div>
+
+          <!-- Payment QR code on thermal bill -->
+          ${upiQrImg ? `
+            <div class="py-1">
+              <div class="text-[9px] uppercase font-bold mb-1">SCAN TO PAY VIA UPI:</div>
+              <img src="${upiQrImg}" alt="UPI QR" class="w-32 h-32 mx-auto object-contain">
+              <div class="text-[9px] font-mono mt-0.5">${restaurant.upi_id || 'spicegarden@upi'}</div>
+            </div>
+          ` : ''}
+
+          <!-- Thermal Footer with Aptaic Branding -->
+          <div class="border-t border-dashed border-black pt-2 text-[9px] space-y-1">
+            <div>THANK YOU FOR DINING WITH US!</div>
+            <div class="font-bold uppercase">DEVELOPED BY APTAIC</div>
+            <div>Think Digital. Think APTAIC</div>
+          </div>
+        </div>
+      `;
+
+      document.getElementById('printable-receipt-normal').innerHTML = normalHtml;
+      document.getElementById('printable-receipt-thermal').innerHTML = thermalHtml;
+
+      setReceiptMode(state.receiptPrintMode);
+      document.getElementById('receipt-modal').classList.remove('hidden');
+    }
+
+    function closeReceiptModal() {
+      document.getElementById('receipt-modal').classList.add('hidden');
+    }
+
+    function printCurrentReceipt() {
+      // Set body class for selected print mode
+      document.body.className = state.receiptPrintMode === 'thermal' ? 'print-mode-thermal' : 'print-mode-normal';
+      window.print();
+      setTimeout(() => { document.body.className = ''; }, 1000);
+    }
+
+    function printStandee() {
+      document.body.className = 'print-mode-standee';
+      window.print();
+      setTimeout(() => { document.body.className = ''; }, 1000);
+    }
+
+    function printReports() {
+      document.body.className = 'print-mode-reports';
+      window.print();
+      setTimeout(() => { document.body.className = ''; }, 1000);
+    }
+
+    // ----------------- COMPREHENSIVE REPORTS MODULE -----------------
+
+    function renderReportsView() {
+      if (!state.reports) return;
+      const rep = state.reports;
+      const fin = rep.financials || {};
+
+      safeSetText('rep-total-revenue', `₹${(fin.total_revenue || 0).toLocaleString()}`);
+      safeSetText('rep-taxable-sales', `₹${(fin.net_taxable_sales || 0).toLocaleString()}`);
+      safeSetText('rep-total-tax', `₹${(fin.total_tax || 0).toLocaleString()}`);
+      safeSetText('rep-tax-split', `CGST ₹${fin.cgst_total || 0} | SGST ₹${fin.sgst_total || 0}`);
+      safeSetText('rep-aov', `₹${fin.average_order_value || 0}`);
+      safeSetText('rep-total-orders-count', `${fin.total_orders || 0} total orders`);
+
+      // Top Dishes
+      const dishTbody = document.getElementById('rep-dish-tbody');
+      if (dishTbody && rep.top_dishes) {
+        dishTbody.innerHTML = rep.top_dishes.map((dish, i) => `
+          <tr class="hover:bg-slate-50 transition">
+            <td class="py-2 px-4 font-bold text-slate-900 flex items-center gap-2">
+              <span class="w-5 h-5 rounded-full ${i === 0 ? 'bg-amber-500 text-white' : 'bg-slate-100 text-slate-700'} flex items-center justify-center font-bold text-[10px]">${i + 1}</span>
+              <span>${dish.name}</span>
+            </td>
+            <td class="py-2 px-4 text-slate-500">${dish.category}</td>
+            <td class="py-2 px-4 text-center font-mono font-bold text-slate-900">${dish.qty_sold}</td>
+            <td class="py-2 px-4 text-right font-mono font-bold text-emerald-700">₹${(dish.total_revenue || 0).toFixed(2)}</td>
+          </tr>
+        `).join('');
+      }
+
+      // Payments
+      const payContainer = document.getElementById('rep-payments-container');
+      if (payContainer && rep.payment_methods) {
+        payContainer.innerHTML = Object.entries(rep.payment_methods).map(([method, amount]) => `
+          <div class="flex justify-between items-center py-1.5 border-b border-slate-100">
+            <span class="font-bold text-slate-800 uppercase flex items-center gap-1.5">
+              <i class="fa-solid fa-credit-card text-orange-500"></i> ${method}
+            </span>
+            <span class="font-mono font-black text-slate-900">₹${Number(amount || 0).toFixed(2)}</span>
+          </div>
+        `).join('');
+      }
+
+      // Operations stats
+      if (rep.staff) {
+        safeSetText('rep-staff-count', rep.staff.count || 0);
+        safeSetText('rep-payroll-total', `₹${(rep.staff.monthly_payroll || 0).toLocaleString()}/mo`);
+      }
+      if (rep.tables) {
+        safeSetText('rep-tables-total', `${rep.tables.total || 0} (${rep.tables.occupied || 0} Occupied)`);
+      }
+      if (rep.customers) {
+        safeSetText('rep-cust-count', rep.customers.count || 0);
+      }
+
+      // Inventory Report
+      if (rep.inventory) {
+        safeSetText('rep-inv-valuation-text', `Total Valuation: ₹${(rep.inventory.total_valuation || 0).toLocaleString()}`);
+        const invTbody = document.getElementById('rep-inventory-tbody');
+        if (invTbody && rep.inventory.items) {
+          invTbody.innerHTML = rep.inventory.items.map(item => `
+            <tr class="hover:bg-slate-50 transition">
+              <td class="py-2 px-4 font-bold text-slate-900">${item.name}</td>
+              <td class="py-2 px-4 font-mono font-bold">${item.stock} ${item.unit}</td>
+              <td class="py-2 px-4 font-mono text-slate-500">${item.min_stock} ${item.unit}</td>
+              <td class="py-2 px-4">
+                <span class="px-2 py-0.5 rounded text-[10px] font-bold ${
+                  item.is_low ? 'bg-red-100 text-red-800 animate-pulse' : 'bg-emerald-100 text-emerald-800'
+                }">
+                  ${item.is_low ? 'LOW STOCK' : 'OPTIMAL'}
+                </span>
+              </td>
+              <td class="py-2 px-4 font-mono">₹${item.price} / ${item.unit}</td>
+              <td class="py-2 px-4 text-right font-mono font-bold text-slate-900">₹${Number(item.valuation || 0).toFixed(2)}</td>
+            </tr>
+          `).join('');
+        }
+      }
+    }
+
+    function exportReportsCSV() {
+      exportModuleReport('master');
+    }
+
+    function exportModuleReport(type) {
+      const rest = state.restaurant || { name: 'Spice Garden', gst_number: '09ABCDE1234F1Z5', address: 'Sector 62, Noida, UP', phone: '9876543210' };
+      const dateStr = new Date().toISOString().split('T')[0];
+      const timeStr = new Date().toLocaleTimeString();
+
+      function escapeCSV(val) {
+        if (val === null || val === undefined) return '""';
+        let str = String(val).replace(/"/g, '""');
+        return `"${str}"`;
+      }
+
+      function downloadFile(filename, content) {
+        const blob = new Blob(["\uFEFF" + content], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(blob);
+        link.setAttribute("download", filename);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        showAlert(`Report successfully exported: ${filename}`, 'success');
+      }
+
+      if (type === 'sales') {
+        const rep = state.reports || {};
+        const fin = rep.financials || {};
+        let csv = `${escapeCSV(rest.name + ' - Financial & Sales Audit Report')}\n`;
+        csv += `Generated On,${escapeCSV(dateStr + ' ' + timeStr)}\n`;
+        csv += `GSTIN,${escapeCSV(rest.gst_number)}\n`;
+        csv += `Address,${escapeCSV(rest.address)}\n\n`;
+
+        csv += "Metric,Amount (INR),Notes\n";
+        csv += `Gross Settled Revenue,${fin.total_revenue || 0},"Total collections from paid invoices"\n`;
+        csv += `Net Taxable Sales,${fin.net_taxable_sales || 0},"Excluding taxes"\n`;
+        csv += `CGST (2.5%),${fin.cgst_total || 0},"Central GST component"\n`;
+        csv += `SGST (2.5%),${fin.sgst_total || 0},"State GST component"\n`;
+        csv += `Total GST Liability,${fin.total_tax || 0},"Total output tax collected"\n`;
+        csv += `Average Order Value (AOV),${fin.average_order_value || 0},"Revenue divided by completed orders"\n`;
+        csv += `Total Orders Settled,${fin.total_orders || 0},"Completed dining orders"\n\n`;
+
+        csv += "Payment Method,Settled Amount (INR),Share (%)\n";
+        const totalRev = Number(fin.total_revenue) || 1;
+        if (rep.payment_methods) {
+          Object.entries(rep.payment_methods).forEach(([m, amt]) => {
+            const share = ((amt / totalRev) * 100).toFixed(1);
+            csv += `${escapeCSV(m.toUpperCase())},${amt},${share}%\n`;
+          });
+        }
+        downloadFile(`${rest.name.replace(/\s+/g, '_')}_Sales_Report_${dateStr}.csv`, csv);
+
+      } else if (type === 'invoices') {
+        let csv = `${escapeCSV(rest.name + ' - GST Tax Invoices Register')}\n`;
+        csv += `Generated On,${escapeCSV(dateStr + ' ' + timeStr)}\n`;
+        csv += `GSTIN,${escapeCSV(rest.gst_number)}\n\n`;
+
+        csv += "Invoice_No,Order_ID,Date,Customer_Name,Customer_Phone,Table,Subtotal,CGST,SGST,Total_Tax,Grand_Total,Payment_Method,Status\n";
+        (state.invoices || []).forEach(inv => {
+          const cust = inv.customer || {};
+          const order = inv.order || {};
+          const pay = inv.payment || {};
+          csv += [
+            escapeCSV(inv.invoice_number),
+            escapeCSV(inv.order_id),
+            escapeCSV(inv.created_at || dateStr),
+            escapeCSV(cust.name || 'Walk-in Guest'),
+            escapeCSV(cust.phone || '-'),
+            escapeCSV(order.table_number || '-'),
+            Number(inv.subtotal || 0).toFixed(2),
+            Number(inv.cgst || 0).toFixed(2),
+            Number(inv.sgst || 0).toFixed(2),
+            Number(inv.total_tax || 0).toFixed(2),
+            Number(inv.total || 0).toFixed(2),
+            escapeCSV((pay.method || 'Cash').toUpperCase()),
+            escapeCSV(pay.status || 'Paid')
+          ].join(',') + '\n';
+        });
+        downloadFile(`${rest.name.replace(/\s+/g, '_')}_GST_Invoices_${dateStr}.csv`, csv);
+
+      } else if (type === 'menu') {
+        let csv = `${escapeCSV(rest.name + ' - Food & Beverage Menu Catalog')}\n`;
+        csv += `Generated On,${escapeCSV(dateStr + ' ' + timeStr)}\n\n`;
+
+        csv += "Item_ID,Dish_Name,Category,Price_INR,GST_Rate_Percent,Servings_Stock,Food_Type,Status\n";
+        (state.menu || []).forEach(item => {
+          csv += [
+            escapeCSV(item.item_id),
+            escapeCSV(item.name),
+            escapeCSV(item.category),
+            Number(item.price || 0).toFixed(2),
+            `${item.gst || 5}%`,
+            item.stock !== undefined ? item.stock : 50,
+            escapeCSV(item.is_veg === false ? 'Non-Veg' : 'Veg'),
+            escapeCSV(item.stock > 0 ? 'Available' : 'Out of Stock')
+          ].join(',') + '\n';
+        });
+        downloadFile(`${rest.name.replace(/\s+/g, '_')}_Menu_Catalog_${dateStr}.csv`, csv);
+
+      } else if (type === 'tables') {
+        let csv = `${escapeCSV(rest.name + ' - Dining Tables & QR Seating Floor Plan')}\n`;
+        csv += `Generated On,${escapeCSV(dateStr + ' ' + timeStr)}\n\n`;
+
+        csv += "Table_ID,Table_Number,Capacity_Seats,Status,Active_Order_ID,Contactless_QR_Ordering_URL\n";
+        (state.tables || []).forEach(tbl => {
+          csv += [
+            escapeCSV(tbl.table_id),
+            escapeCSV(tbl.table_number),
+            tbl.capacity || 4,
+            escapeCSV(tbl.status.toUpperCase()),
+            escapeCSV(tbl.current_order_id || 'None'),
+            escapeCSV(tbl.qr_url || '')
+          ].join(',') + '\n';
+        });
+        downloadFile(`${rest.name.replace(/\s+/g, '_')}_Tables_Report_${dateStr}.csv`, csv);
+
+      } else if (type === 'kitchen') {
+        let csv = `${escapeCSV(rest.name + ' - Kitchen Display System (KDS) Operations Log')}\n`;
+        csv += `Generated On,${escapeCSV(dateStr + ' ' + timeStr)}\n\n`;
+
+        csv += "Order_ID,Table,Customer,Status,Ordered_Items,Total_Amount_INR,Order_Time\n";
+        (state.orders || []).forEach(o => {
+          const itemsStr = (o.items || []).map(i => `${i.name} (x${i.qty})`).join('; ');
+          csv += [
+            escapeCSV(o.order_id),
+            escapeCSV(o.table_number || 'Takeaway'),
+            escapeCSV(o.customer_name || 'Walk-in Guest'),
+            escapeCSV(o.status.toUpperCase()),
+            escapeCSV(itemsStr),
+            Number(o.total || 0).toFixed(2),
+            escapeCSV(o.created_at || dateStr)
+          ].join(',') + '\n';
+        });
+        downloadFile(`${rest.name.replace(/\s+/g, '_')}_Kitchen_KDS_Log_${dateStr}.csv`, csv);
+
+      } else if (type === 'inventory') {
+        let csv = `${escapeCSV(rest.name + ' - Raw Materials Inventory & Stock Health Report')}\n`;
+        csv += `Generated On,${escapeCSV(dateStr + ' ' + timeStr)}\n\n`;
+
+        csv += "Item_ID,Raw_Material,Current_Stock,Unit,Min_Safety_Threshold,Unit_Cost_INR,Total_Valuation_INR,Stock_Health,Reorder_Recommended\n";
+        let totalVal = 0;
+        (state.inventory || []).forEach(inv => {
+          const val = (Number(inv.stock) || 0) * (Number(inv.price) || 0);
+          totalVal += val;
+          const isLow = (Number(inv.stock) || 0) <= (Number(inv.min_stock) || 0);
+          csv += [
+            escapeCSV(inv.inventory_id || inv.item_id || '-'),
+            escapeCSV(inv.name),
+            inv.stock,
+            escapeCSV(inv.unit),
+            inv.min_stock,
+            Number(inv.price || 0).toFixed(2),
+            val.toFixed(2),
+            escapeCSV(isLow ? 'LOW STOCK ALERT' : 'OPTIMAL'),
+            escapeCSV(isLow ? 'YES - REORDER NOW' : 'NO')
+          ].join(',') + '\n';
+        });
+        csv += `\n,,,TOTAL VALUATION,,${totalVal.toFixed(2)},,\n`;
+        downloadFile(`${rest.name.replace(/\s+/g, '_')}_Inventory_Valuation_${dateStr}.csv`, csv);
+
+      } else if (type === 'recipes') {
+        let csv = `${escapeCSV(rest.name + ' - Recipe Bill of Materials (BOM) Breakdown')}\n`;
+        csv += `Generated On,${escapeCSV(dateStr + ' ' + timeStr)}\n\n`;
+
+        csv += "Recipe_ID,Dish_Name,Dish_Category,Raw_Material_Ingredient,Qty_Per_Serving,Unit,Unit_Cost_INR,Ingredient_Cost_Per_Dish\n";
+        (state.recipes || []).forEach(rc => {
+          const dish = (state.menu || []).find(m => m.item_id === rc.item_id) || { name: 'Item #' + rc.item_id, category: 'Dish' };
+          const inv = (state.inventory || []).find(i => i.inventory_id === rc.inventory_id) || { name: 'Raw Material #' + rc.inventory_id, price: 0 };
+          const costContribution = (Number(rc.qty_needed) || 0) * (Number(inv.price) || 0);
+          csv += [
+            escapeCSV(rc.recipe_id),
+            escapeCSV(dish.name),
+            escapeCSV(dish.category),
+            escapeCSV(inv.name),
+            rc.qty_needed,
+            escapeCSV(rc.unit),
+            Number(inv.price || 0).toFixed(2),
+            costContribution.toFixed(2)
+          ].join(',') + '\n';
+        });
+        downloadFile(`${rest.name.replace(/\s+/g, '_')}_Recipe_BOM_${dateStr}.csv`, csv);
+
+      } else if (type === 'customers') {
+        let csv = `${escapeCSV(rest.name + ' - Customer Relationship Management (CRM) Directory')}\n`;
+        csv += `Generated On,${escapeCSV(dateStr + ' ' + timeStr)}\n\n`;
+
+        csv += "Customer_ID,Customer_Name,Phone_Number,Email,Address,GST_Number,Total_Visits,Total_Spend_INR\n";
+        (state.customers || []).forEach(c => {
+          csv += [
+            escapeCSV(c.customer_id),
+            escapeCSV(c.name),
+            escapeCSV(c.phone || '-'),
+            escapeCSV(c.email || '-'),
+            escapeCSV(c.address || '-'),
+            escapeCSV(c.gst_number || '-'),
+            c.total_orders || 1,
+            Number(c.total_spent || 0).toFixed(2)
+          ].join(',') + '\n';
+        });
+        downloadFile(`${rest.name.replace(/\s+/g, '_')}_Customers_CRM_${dateStr}.csv`, csv);
+
+      } else if (type === 'staff') {
+        let csv = `${escapeCSV(rest.name + ' - Staff Register & Monthly Payroll Report')}\n`;
+        csv += `Generated On,${escapeCSV(dateStr + ' ' + timeStr)}\n\n`;
+
+        csv += "Staff_ID,Staff_Name,Designation_Role,Phone_Number,Monthly_Salary_INR,Status,Active\n";
+        let totalPayroll = 0;
+        (state.staff || []).forEach(s => {
+          totalPayroll += Number(s.salary) || 0;
+          csv += [
+            escapeCSV(s.staff_id),
+            escapeCSV(s.name),
+            escapeCSV(s.role),
+            escapeCSV(s.phone || '-'),
+            Number(s.salary || 0).toFixed(2),
+            escapeCSV((s.status || 'Active').toUpperCase()),
+            escapeCSV(s.status === 'active' ? 'YES' : 'NO')
+          ].join(',') + '\n';
+        });
+        csv += `\n,,,TOTAL MONTHLY PAYROLL,${totalPayroll.toFixed(2)},,\n`;
+        downloadFile(`${rest.name.replace(/\s+/g, '_')}_Staff_Payroll_${dateStr}.csv`, csv);
+
+      } else if (type === 'master') {
+        const rep = state.reports || {};
+        const fin = rep.financials || {};
+        let csv = `${escapeCSV('========================================================================')}\n`;
+        csv += `${escapeCSV(rest.name.toUpperCase() + ' - COMPLETE MANAGEMENT & AUDIT MASTER REPORT')}\n`;
+        csv += `${escapeCSV('Developed By APTAIC - Restaurant POS & CRM Architecture')}\n`;
+        csv += `${escapeCSV('Generated On: ' + dateStr + ' ' + timeStr)}\n`;
+        csv += `${escapeCSV('Restaurant GSTIN: ' + rest.gst_number + ' | Contact: ' + rest.phone)}\n`;
+        csv += `${escapeCSV('Address: ' + rest.address)}\n`;
+        csv += `${escapeCSV('========================================================================')}\n\n`;
+
+        // 1. Financial Performance
+        csv += `[1. EXECUTIVE FINANCIAL SUMMARY]\n`;
+        csv += `Metric,Value (INR),Details\n`;
+        csv += `Gross Settled Revenue,${fin.total_revenue || 0},"Total billing revenue collected"\n`;
+        csv += `Net Taxable Sales,${fin.net_taxable_sales || 0},"Sales volume before GST"\n`;
+        csv += `CGST Collected (2.5%),${fin.cgst_total || 0},"Central GST"\n`;
+        csv += `SGST Collected (2.5%),${fin.sgst_total || 0},"State GST"\n`;
+        csv += `Total GST Collected,${fin.total_tax || 0},"Combined output tax liability"\n`;
+        csv += `Average Order Value,${fin.average_order_value || 0},"AOV"\n`;
+        csv += `Total Orders Recorded,${fin.total_orders || 0},"Orders count"\n\n`;
+
+        // 2. Dish Sales
+        csv += `[2. TOP SELLING DISHES PERFORMANCE]\n`;
+        csv += `Dish Name,Category,Portions Sold,Total Revenue (INR)\n`;
+        (rep.top_dishes || []).forEach(d => {
+          csv += `${escapeCSV(d.name)},${escapeCSV(d.category)},${d.qty_sold},${d.total_revenue}\n`;
+        });
+        csv += `\n`;
+
+        // 3. GST Invoices
+        csv += `[3. GST INVOICES AUDIT TRAIL]\n`;
+        csv += `Invoice_No,Order_ID,Date,Customer,Subtotal,CGST,SGST,Grand_Total,Payment_Mode\n`;
+        (state.invoices || []).forEach(inv => {
+          const cust = inv.customer || {};
+          const pay = inv.payment || {};
+          csv += `${escapeCSV(inv.invoice_number)},${escapeCSV(inv.order_id)},${escapeCSV(inv.created_at || dateStr)},${escapeCSV(cust.name || 'Guest')},${inv.subtotal},${inv.cgst},${inv.sgst},${inv.total},${escapeCSV((pay.method || 'Cash').toUpperCase())}\n`;
+        });
+        csv += `\n`;
+
+        // 4. Inventory
+        csv += `[4. INVENTORY VALUATION & REORDER ALERTS]\n`;
+        csv += `Raw Material,Stock on Hand,Unit,Safety Threshold,Unit Cost (INR),Valuation (INR),Health Status\n`;
+        let totalVal = 0;
+        (state.inventory || []).forEach(i => {
+          const val = (Number(i.stock) || 0) * (Number(i.price) || 0);
+          totalVal += val;
+          csv += `${escapeCSV(i.name)},${i.stock},${escapeCSV(i.unit)},${i.min_stock},${i.price},${val.toFixed(2)},${i.stock <= i.min_stock ? 'LOW STOCK' : 'OPTIMAL'}\n`;
+        });
+        csv += `Total Inventory Valuation,,,,,${totalVal.toFixed(2)},\n\n`;
+
+        // 5. Menu Items
+        csv += `[5. MENU CATALOG & PRICING]\n`;
+        csv += `Item ID,Dish Name,Category,Price (INR),GST Slab,Food Type\n`;
+        (state.menu || []).forEach(m => {
+          csv += `${m.item_id},${escapeCSV(m.name)},${escapeCSV(m.category)},${m.price},${m.gst}%,${escapeCSV(m.is_veg === false ? 'Non-Veg' : 'Veg')}\n`;
+        });
+        csv += `\n`;
+
+        // 6. Dining Tables
+        csv += `[6. DINING TABLES & SEATING]\n`;
+        csv += `Table ID,Table Number,Capacity,Status,Active Order,QR URL\n`;
+        (state.tables || []).forEach(t => {
+          csv += `${t.table_id},${escapeCSV(t.table_number)},${t.capacity || 4},${escapeCSV(t.status.toUpperCase())},${escapeCSV(t.current_order_id || 'None')},${escapeCSV(t.qr_url || '')}\n`;
+        });
+        csv += `\n`;
+
+        // 7. Customers CRM
+        csv += `[7. CUSTOMERS CRM REGISTER]\n`;
+        csv += `Customer ID,Name,Phone,Email,Address,GST Number,Total Spend (INR)\n`;
+        (state.customers || []).forEach(c => {
+          csv += `${c.customer_id},${escapeCSV(c.name)},${escapeCSV(c.phone || '-')},${escapeCSV(c.email || '-')},${escapeCSV(c.address || '-')},${escapeCSV(c.gst_number || '-')},${Number(c.total_spent || 0).toFixed(2)}\n`;
+        });
+        csv += `\n`;
+
+        // 8. Staff Payroll
+        csv += `[8. STAFF & MONTHLY PAYROLL REGISTER]\n`;
+        csv += `Staff ID,Name,Role,Phone,Monthly Salary (INR),Status\n`;
+        let payrollSum = 0;
+        (state.staff || []).forEach(s => {
+          payrollSum += Number(s.salary) || 0;
+          csv += `${s.staff_id},${escapeCSV(s.name)},${escapeCSV(s.role)},${escapeCSV(s.phone || '-')},${s.salary},${escapeCSV(s.status || 'Active')}\n`;
+        });
+        csv += `Total Monthly Payroll Expense,,,,${payrollSum.toFixed(2)},\n\n`;
+
+        downloadFile(`${rest.name.replace(/\s+/g, '_')}_MASTER_ALL_MODULES_REPORT_${dateStr}.csv`, csv);
+      }
+    }
+
+    function exportAllModulesZipOrBatch() {
+      showAlert('Initiating batch download of all 9 module reports...', 'info');
+      const modules = ['sales', 'invoices', 'menu', 'tables', 'kitchen', 'inventory', 'recipes', 'customers', 'staff'];
+      let delay = 0;
+      modules.forEach((mod) => {
+        setTimeout(() => {
+          exportModuleReport(mod);
+        }, delay);
+        delay += 350;
+      });
+    }
+
+    // ----------------- POS TERMINAL LOGIC -----------------
+
+    function renderCategoryFilters() {
+      const categories = ['All', ...new Set(state.menu.map(m => m.category))];
+      const container = document.getElementById('category-filters');
+      container.innerHTML = categories.map(cat => {
+        const isActive = state.activeCategory === cat;
+        return `
+          <button onclick="setCategory('${cat}')" class="px-2.5 py-1 rounded-md text-xs font-medium whitespace-nowrap transition ${
+            isActive ? 'bg-orange-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+          }">${cat}</button>
+        `;
+      }).join('');
+    }
+
+    function setCategory(cat) {
+      state.activeCategory = cat;
+      renderCategoryFilters();
+      renderPOSMenu();
+    }
+
+    function renderPOSMenu() {
+      const search = (document.getElementById('menu-search').value || '').toLowerCase();
+      const container = document.getElementById('pos-menu-grid');
+
+      const filtered = state.menu.filter(item => {
+        const matchCat = state.activeCategory === 'All' || item.category === state.activeCategory;
+        const matchSearch = item.name.toLowerCase().includes(search) || item.category.toLowerCase().includes(search);
+        return matchCat && matchSearch;
+      });
+
+      if (filtered.length === 0) {
+        container.innerHTML = `<div class="col-span-full text-center py-8 text-slate-400 text-xs">No menu items found. Click "+ Add Dish" above to create one.</div>`;
+        return;
+      }
+
+      container.innerHTML = filtered.map(item => {
+        const isOutOfStock = item.available_servings <= 0;
+        return `
+          <div onclick="${isOutOfStock ? '' : `addToCart(${item.item_id})`}" class="bg-white border rounded-xl p-3.5 shadow-sm transition hover:shadow-md ${
+            isOutOfStock ? 'opacity-60 border-slate-200 cursor-not-allowed' : 'border-slate-200 hover:border-orange-400 cursor-pointer'
+          }">
+            <div class="flex items-start justify-between gap-2 mb-1.5">
+              <div class="flex items-center gap-1.5">
+                <span class="w-3.5 h-3.5 border ${item.is_veg ? 'border-emerald-600' : 'border-red-600'} flex items-center justify-center p-0.5 rounded-sm">
+                  <span class="w-1.5 h-1.5 rounded-full ${item.is_veg ? 'bg-emerald-600' : 'bg-red-600'}"></span>
+                </span>
+                <h4 class="font-bold text-sm text-slate-900">${item.name}</h4>
+              </div>
+              <span class="text-xs bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded">${item.category}</span>
+            </div>
+
+            <p class="text-[11px] text-slate-500 line-clamp-2 mb-3">${item.description || 'Prepared fresh with kitchen ingredients.'}</p>
+
+            <div class="flex items-center justify-between pt-2 border-t border-slate-100 text-xs">
+              <div>
+                <span class="font-bold text-slate-900 text-sm">₹${item.price}</span>
+                <span class="text-[10px] text-slate-400 ml-1">+${item.gst}% GST</span>
+              </div>
+              <div class="flex items-center gap-1">
+                ${isOutOfStock 
+                  ? `<span class="text-[10px] text-red-500 font-semibold bg-red-50 px-2 py-0.5 rounded">Out of Stock</span>`
+                  : `<span class="text-[10px] text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded font-medium">${item.available_servings} left</span>`
+                }
+                <button class="w-7 h-7 rounded-lg bg-orange-50 text-orange-600 hover:bg-orange-600 hover:text-white flex items-center justify-center transition">
+                  <i class="fa-solid fa-plus text-xs"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function populateCartSelectors() {
+      const tableSelect = document.getElementById('cart-table-select');
+      tableSelect.innerHTML = `
+        <option value="">Takeaway / Walk-in</option>
+        ${state.tables.map(t => `
+          <option value="${t.table_id}">Table ${t.table_number} (${t.status})</option>
+        `).join('')}
+      `;
+
+      const custSelect = document.getElementById('cart-customer-select');
+      custSelect.innerHTML = state.customers.map(c => `
+        <option value="${c.customer_id}">${c.name} (${c.phone})</option>
+      `).join('');
+    }
+
+    function addToCart(itemId) {
+      const menuItem = state.menu.find(m => m.item_id === itemId);
+      if (!menuItem) return;
+
+      const existing = state.cart.find(c => c.item_id === itemId);
+      if (existing) {
+        existing.qty += 1;
+      } else {
+        state.cart.push({
+          item_id: menuItem.item_id,
+          name: menuItem.name,
+          price: menuItem.price,
+          gst: menuItem.gst,
+          qty: 1
+        });
+      }
+      renderCart();
+    }
+
+    function updateCartQty(itemId, delta) {
+      const existing = state.cart.find(c => c.item_id === itemId);
+      if (!existing) return;
+      existing.qty += delta;
+      if (existing.qty <= 0) {
+        state.cart = state.cart.filter(c => c.item_id !== itemId);
+      }
+      renderCart();
+    }
+
+    function renderCart() {
+      const container = document.getElementById('cart-items-container');
+      const countPill = document.getElementById('cart-item-count');
+      const totalItems = state.cart.reduce((sum, item) => sum + item.qty, 0);
+      countPill.textContent = `${totalItems} items`;
+
+      const btnKot = document.getElementById('btn-send-kot');
+      const btnSettle = document.getElementById('btn-settle-cart');
+
+      if (state.cart.length === 0) {
+        container.innerHTML = `
+          <div class="text-center py-12 text-slate-400 text-xs">
+            <i class="fa-solid fa-basket-shopping text-3xl mb-2 text-slate-300"></i>
+            <p>No items added yet.</p>
+            <p class="text-[11px] text-slate-400 mt-1">Click dishes on the left to add to bill.</p>
+          </div>
+        `;
+        document.getElementById('cart-subtotal').textContent = '₹0.00';
+        document.getElementById('cart-cgst').textContent = '₹0.00';
+        document.getElementById('cart-sgst').textContent = '₹0.00';
+        document.getElementById('cart-grand-total').textContent = '₹0.00';
+        btnKot.disabled = true;
+        btnSettle.disabled = true;
+        return;
+      }
+
+      btnKot.disabled = false;
+      btnSettle.disabled = false;
+
+      let subtotal = 0;
+      let totalGst = 0;
+
+      container.innerHTML = state.cart.map(item => {
+        const itemSubtotal = item.price * item.qty;
+        const itemGst = itemSubtotal * (item.gst / 100);
+        subtotal += itemSubtotal;
+        totalGst += itemGst;
+
+        return `
+          <div class="flex items-center justify-between text-xs bg-slate-50 p-2 rounded-lg border border-slate-200">
+            <div class="flex-1">
+              <div class="font-semibold text-slate-800">${item.name}</div>
+              <div class="text-[10px] text-slate-500">₹${item.price} x ${item.qty} (${item.gst}% GST)</div>
+            </div>
+            <div class="flex items-center gap-2">
+              <div class="flex items-center border border-slate-300 rounded bg-white">
+                <button onclick="updateCartQty(${item.item_id}, -1)" class="px-2 py-0.5 text-slate-500 hover:text-slate-800 hover:bg-slate-100">-</button>
+                <span class="px-2 font-bold text-slate-800 text-[11px]">${item.qty}</span>
+                <button onclick="updateCartQty(${item.item_id}, 1)" class="px-2 py-0.5 text-slate-500 hover:text-slate-800 hover:bg-slate-100">+</button>
+              </div>
+              <span class="font-bold text-slate-800 w-12 text-right">₹${itemSubtotal}</span>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      const cgst = Math.round((totalGst / 2) * 100) / 100;
+      const sgst = Math.round((totalGst / 2) * 100) / 100;
+      const grandTotal = Math.round((subtotal + totalGst) * 100) / 100;
+
+      document.getElementById('cart-subtotal').textContent = `₹${subtotal.toFixed(2)}`;
+      document.getElementById('cart-cgst').textContent = `₹${cgst.toFixed(2)}`;
+      document.getElementById('cart-sgst').textContent = `₹${sgst.toFixed(2)}`;
+      document.getElementById('cart-grand-total').textContent = `₹${grandTotal.toFixed(2)}`;
+    }
+
+    async function placeOrder(targetStatus = 'pending') {
+      if (state.cart.length === 0) return;
+
+      const tableId = document.getElementById('cart-table-select').value;
+      const customerId = document.getElementById('cart-customer-select').value;
+
+      try {
+        const res = await fetch('/api/orders', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            table_id: tableId ? Number(tableId) : null,
+            customer_id: Number(customerId),
+            items: state.cart.map(c => ({ item_id: c.item_id, qty: c.qty })),
+            source: 'pos'
+          })
+        });
+
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Failed to place order');
+
+        let msg = `Order #${data.order.order_id} sent to kitchen! Ingredients deducted according to recipes.`;
+        if (data.warnings && data.warnings.length > 0) {
+          msg += ` Low stock warning: ${data.warnings.join('; ')}`;
+        }
+        showAlert(msg, data.warnings?.length ? 'error' : 'info');
+
+        state.cart = [];
+        await loadAllData();
+        return data.order;
+      } catch (err) {
+        showAlert(err.message, 'error');
+        return null;
+      }
+    }
+
+    async function openPaymentModalForCart() {
+      const order = await placeOrder('pending');
+      if (order) {
+        openPaymentModal(order.order_id, order.grand_total);
+      }
+    }
+
+    async function openPaymentModal(orderId, amount) {
+      state.pendingSettlementOrderId = orderId;
+      document.getElementById('pay-modal-order-desc').textContent = `Settle Order #${orderId}`;
+      document.getElementById('pay-modal-amount').textContent = `₹${amount.toFixed(2)}`;
+      document.getElementById('upi-qr-amount-text').textContent = `₹${amount.toFixed(2)}`;
+
+      try {
+        const res = await fetch(`/api/qr/upi?order_id=${orderId}&amount=${amount}`);
+        const data = await res.json();
+        if (data.qr_image) {
+          document.getElementById('upi-qr-image').src = data.qr_image;
+          document.getElementById('upi-qr-vpa').textContent = data.upi_id;
+          document.getElementById('upi-qr-payee').textContent = data.payee_name;
+        }
+      } catch (err) {
+        console.error('Error fetching UPI QR:', err);
+      }
+
+      document.getElementById('payment-modal').classList.remove('hidden');
+    }
+
+    function closePaymentModal() {
+      document.getElementById('payment-modal').classList.add('hidden');
+      state.pendingSettlementOrderId = null;
+    }
+
+    function togglePayMode(mode) {
+      const upiSection = document.getElementById('upi-qr-section');
+      if (mode === 'upi') {
+        upiSection.classList.remove('hidden');
+      } else {
+        upiSection.classList.add('hidden');
+      }
+    }
+
+    async function confirmSettlement() {
+      if (!state.pendingSettlementOrderId) return;
+      const method = document.querySelector('input[name="pay-method"]:checked').value;
+
+      try {
+        const res = await fetch(`/api/orders/${state.pendingSettlementOrderId}/settle`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ method })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Failed to settle order');
+
+        closePaymentModal();
+        showAlert(`Order #${state.pendingSettlementOrderId} settled! Invoice ${data.invoice.invoice_no} generated.`, 'info');
+        await loadAllData();
+        openReceiptModal(data.invoice.invoice_id);
+      } catch (err) {
+        showAlert(err.message, 'error');
+      }
+    }
+
+    // ----------------- TABLES & PRINTABLE QR STANDEES -----------------
+
+    function renderTablesView() {
+      const container = document.getElementById('tables-container');
+      container.innerHTML = state.tables.map(table => {
+        const isOccupied = table.status === 'occupied';
+        const isAvail = table.status === 'available';
+        const activeOrder = table.active_order;
+
+        return `
+          <div class="bg-white border rounded-xl p-5 shadow-sm ${
+            isOccupied ? 'border-amber-300 bg-amber-50/20' : 'border-slate-200'
+          }">
+            <div class="flex justify-between items-start mb-3">
+              <div>
+                <span class="text-2xl font-black text-slate-800">${table.table_number}</span>
+                <span class="text-xs text-slate-500 block">Capacity: ${table.capacity || 4} Guests</span>
+              </div>
+              <div class="flex items-center gap-1.5">
+                <span class="text-xs font-bold uppercase px-2.5 py-1 rounded-full ${
+                  isAvail ? 'bg-emerald-100 text-emerald-800' : isOccupied ? 'bg-amber-100 text-amber-800' : 'bg-blue-100 text-blue-800'
+                }">
+                  ${table.status}
+                </span>
+                <button onclick="openTableModal(${table.table_id})" title="Edit Table" class="text-slate-400 hover:text-slate-700 p-1">
+                  <i class="fa-solid fa-pen text-xs"></i>
+                </button>
+                <button onclick="deleteTable(${table.table_id})" title="Delete Table" class="text-slate-400 hover:text-red-600 p-1">
+                  <i class="fa-solid fa-trash text-xs"></i>
+                </button>
+              </div>
+            </div>
+
+            ${activeOrder ? `
+              <div class="bg-amber-50 p-2.5 rounded-lg border border-amber-200 text-xs mb-3 space-y-1">
+                <div class="font-bold text-amber-900 flex justify-between">
+                  <span>Order #${activeOrder.order_id}</span>
+                  <span>₹${activeOrder.grand_total}</span>
+                </div>
+                <div class="text-[11px] text-amber-800">${activeOrder.items.map(i => `${i.name} (x${i.qty})`).join(', ')}</div>
+              </div>
+            ` : `
+              <div class="text-slate-400 text-xs italic py-3">No active diners seated.</div>
+            `}
+
+            <div class="pt-3 border-t border-slate-100 flex items-center justify-between gap-2 text-xs">
+              <button onclick="selectTableForPOS(${table.table_id})" class="px-2.5 py-1.5 bg-orange-50 text-orange-700 hover:bg-orange-100 font-semibold rounded-lg flex items-center gap-1">
+                <i class="fa-solid fa-plus text-[10px]"></i> Order
+              </button>
+              
+              <button onclick="openTableStandeeModal(${table.table_id})" class="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-900 text-white font-semibold rounded-lg flex items-center gap-1">
+                <i class="fa-solid fa-qrcode text-[10px]"></i> Print Standee
+              </button>
+
+              ${activeOrder ? `
+                <button onclick="openPaymentModal(${activeOrder.order_id}, ${activeOrder.grand_total})" class="px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-lg">
+                  Settle
+                </button>
+              ` : `
+                <button onclick="toggleTableStatus(${table.table_id}, '${isAvail ? 'occupied' : 'available'}')" class="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium rounded-lg">
+                  ${isAvail ? 'Occupy' : 'Free'}
+                </button>
+              `}
+            </div>
+            
+            <div class="mt-3 text-[11px] text-slate-500 flex items-center justify-between bg-slate-50 px-2 py-1 rounded">
+              <span class="truncate font-mono">${table.qr_url}</span>
+              <button onclick="simulateQRScan('${table.table_number}')" title="Test QR Scan" class="text-orange-600 hover:underline font-semibold ml-2">Simulate</button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    async function openTableStandeeModal(tableId) {
+      try {
+        const res = await fetch(`/api/qr/table/${tableId}`);
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error);
+
+        const table = data.table;
+        const rest = data.restaurant;
+
+        const standeeHtml = `
+          <div class="border-4 border-slate-900 rounded-2xl p-6 text-center space-y-4 bg-white shadow-xl max-w-sm mx-auto">
+            <div class="border-b-2 border-slate-200 pb-3">
+              <div class="w-12 h-12 rounded-xl bg-orange-600 text-white mx-auto flex items-center justify-center text-xl font-black mb-1">
+                🍲
+              </div>
+              <h2 class="text-xl font-black text-slate-900 uppercase tracking-tight">${rest.name || 'Spice Garden'}</h2>
+              <p class="text-xs text-slate-500 font-medium">${rest.address || 'Sector 62, Noida, UP'}</p>
+            </div>
+
+            <div class="py-2">
+              <div class="inline-block bg-orange-600 text-white font-black text-xl px-6 py-2 rounded-xl shadow-md uppercase tracking-wider">
+                TABLE ${table.table_number}
+              </div>
+              <p class="text-xs text-slate-600 font-semibold mt-2">Dine-In Contactless Ordering</p>
+            </div>
+
+            <div class="w-56 h-56 mx-auto bg-slate-50 border-2 border-slate-900 rounded-2xl p-3 shadow-inner flex items-center justify-center">
+              <img src="${data.qr_image}" alt="Table ${table.table_number} QR Code" class="w-full h-full object-contain">
+            </div>
+
+            <div class="bg-slate-50 rounded-xl p-3 border border-slate-200 text-xs text-slate-700 text-left space-y-1.5">
+              <div class="font-bold text-center text-slate-900 uppercase tracking-wider text-[11px] mb-1">How to Order</div>
+              <div class="flex items-center gap-2">
+                <span class="w-4 h-4 rounded-full bg-orange-600 text-white font-bold flex items-center justify-center text-[10px]">1</span>
+                <span>Open your smartphone Camera or QR Scanner</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <span class="w-4 h-4 rounded-full bg-orange-600 text-white font-bold flex items-center justify-center text-[10px]">2</span>
+                <span>Scan the QR code to open digital menu</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <span class="w-4 h-4 rounded-full bg-orange-600 text-white font-bold flex items-center justify-center text-[10px]">3</span>
+                <span>Select dishes & tap "Place Order" to kitchen!</span>
+              </div>
+            </div>
+
+            <!-- Aptaic Branding on Standee -->
+            <div class="pt-2 border-t border-slate-200 flex items-center justify-center gap-2 text-[10px] text-slate-400">
+              <img src="/assets/aptaic_logo.png" alt="Aptaic" class="w-4 h-4 rounded-full object-contain">
+              <span class="font-bold text-slate-600">Developed By APTAIC</span>
+            </div>
+          </div>
+        `;
+
+        document.getElementById('printable-standee').innerHTML = standeeHtml;
+        document.getElementById('standee-modal').classList.remove('hidden');
+
+      } catch (err) {
+        showAlert('Failed to load table QR: ' + err.message, 'error');
+      }
+    }
+
+    async function printAllTableStandees() {
+      try {
+        const qrPromises = state.tables.map(t => fetch(`/api/qr/table/${t.table_id}`).then(r => r.json()));
+        const results = await Promise.all(qrPromises);
+
+        const rest = state.restaurant;
+        const allHtml = `
+          <div class="space-y-10">
+            ${results.map(data => `
+              <div class="border-4 border-slate-900 rounded-2xl p-6 text-center space-y-4 bg-white shadow-xl max-w-sm mx-auto break-after-page">
+                <div class="border-b-2 border-slate-200 pb-3">
+                  <h2 class="text-xl font-black text-slate-900 uppercase">${rest.name || 'Spice Garden'}</h2>
+                  <p class="text-xs text-slate-500">${rest.address || 'Sector 62, Noida, UP'}</p>
+                </div>
+                <div class="inline-block bg-orange-600 text-white font-black text-xl px-6 py-2 rounded-xl uppercase">
+                  TABLE ${data.table.table_number}
+                </div>
+                <div class="w-56 h-56 mx-auto border-2 border-slate-900 rounded-2xl p-3 flex items-center justify-center">
+                  <img src="${data.qr_image}" class="w-full h-full object-contain">
+                </div>
+                <div class="bg-slate-50 rounded-xl p-3 text-xs text-slate-700 text-center font-semibold">
+                  Scan to View Menu & Order Directly from your Phone
+                </div>
+                <div class="pt-1 text-[10px] text-slate-400 font-bold uppercase">Developed By APTAIC</div>
+              </div>
+            `).join('')}
+          </div>
+        `;
+
+        document.getElementById('printable-standee').innerHTML = allHtml;
+        document.getElementById('standee-modal').classList.remove('hidden');
+
+      } catch (err) {
+        showAlert('Failed to load all table QR codes: ' + err.message, 'error');
+      }
+    }
+
+    function closeStandeeModal() {
+      document.getElementById('standee-modal').classList.add('hidden');
+    }
+
+    function openTableModal(tableId = null) {
+      const modal = document.getElementById('table-modal');
+      const title = document.getElementById('table-modal-title');
+      const idInput = document.getElementById('table-id');
+      const numInput = document.getElementById('table-num');
+      const capInput = document.getElementById('table-capacity');
+      const qrInput = document.getElementById('table-qr-url');
+
+      if (tableId) {
+        const table = state.tables.find(t => t.table_id === tableId);
+        title.textContent = `Edit Table ${table.table_number}`;
+        idInput.value = table.table_id;
+        numInput.value = table.table_number;
+        capInput.value = table.capacity || 4;
+        qrInput.value = table.qr_url || '';
+      } else {
+        title.textContent = 'Add Dining Table';
+        idInput.value = '';
+        numInput.value = `T${state.tables.length + 1}`;
+        capInput.value = 4;
+        qrInput.value = '';
+      }
+      modal.classList.remove('hidden');
+    }
+
+    function closeTableModal() {
+      document.getElementById('table-modal').classList.add('hidden');
+    }
+
+    async function saveTable(e) {
+      e.preventDefault();
+      const id = document.getElementById('table-id').value;
+      const payload = {
+        table_number: document.getElementById('table-num').value,
+        capacity: Number(document.getElementById('table-capacity').value),
+        qr_url: document.getElementById('table-qr-url').value
+      };
+
+      try {
+        const url = id ? `/api/tables/${id}` : '/api/tables';
+        const method = id ? 'PUT' : 'POST';
+        const res = await fetch(url, {
+          method,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        if (!res.ok) throw new Error('Failed to save table');
+        closeTableModal();
+        showAlert(id ? 'Table updated successfully!' : 'Table added successfully!', 'info');
+        await loadAllData();
+      } catch (err) {
+        showAlert(err.message, 'error');
+      }
+    }
+
+    async function deleteTable(tableId) {
+      const table = state.tables.find(t => t.table_id === tableId);
+      if (!confirm(`Are you sure you want to delete Table ${table.table_number}?`)) return;
+
+      try {
+        const res = await fetch(`/api/tables/${tableId}`, { method: 'DELETE' });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Failed to delete table');
+        showAlert(`Table ${table.table_number} deleted.`, 'info');
+        await loadAllData();
+      } catch (err) {
+        showAlert(err.message, 'error');
+      }
+    }
+
+    function selectTableForPOS(tableId) {
+      document.getElementById('cart-table-select').value = tableId;
+      switchTab('pos');
+    }
+
+    async function toggleTableStatus(tableId, newStatus) {
+      try {
+        await fetch(`/api/tables/${tableId}/status`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status: newStatus })
+        });
+        await loadAllData();
+      } catch (err) {
+        showAlert(err.message, 'error');
+      }
+    }
+
+    function simulateQRScan(tableNum) {
+      document.getElementById('sim-table-num').textContent = tableNum;
+      switchTab('qr-sim');
+    }
+
+    // ----------------- MENU MANAGER (CRUD) -----------------
+
+    function renderMenuManagerView() {
+      const tbody = document.getElementById('menu-mgr-table-body');
+      tbody.innerHTML = state.menu.map(item => `
+        <tr class="hover:bg-slate-50 transition">
+          <td class="py-3 px-4 font-bold text-slate-900">${item.name}</td>
+          <td class="py-3 px-4 text-slate-600">${item.category}</td>
+          <td class="py-3 px-4 font-mono font-bold text-slate-900">₹${item.price}</td>
+          <td class="py-3 px-4 font-mono">${item.gst}% GST</td>
+          <td class="py-3 px-4 font-semibold text-emerald-700">${item.available_servings} servings</td>
+          <td class="py-3 px-4">
+            <span class="px-2 py-0.5 rounded text-[10px] font-bold ${
+              item.is_veg ? 'bg-emerald-100 text-emerald-800' : 'bg-red-100 text-red-800'
+            }">
+              ${item.is_veg ? 'Veg' : 'Non-Veg'}
+            </span>
+          </td>
+          <td class="py-3 px-4 text-right space-x-1">
+            <button onclick="openMenuModal(${item.item_id})" class="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded text-[11px]">
+              <i class="fa-solid fa-pen text-[10px] mr-1"></i> Edit
+            </button>
+            <button onclick="deleteMenuItem(${item.item_id})" class="px-2.5 py-1 bg-red-50 hover:bg-red-100 text-red-700 font-semibold rounded text-[11px]">
+              <i class="fa-solid fa-trash text-[10px] mr-1"></i> Delete
+            </button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    function openMenuModal(itemId = null) {
+      const modal = document.getElementById('menu-modal');
+      const title = document.getElementById('menu-modal-title');
+      const idInput = document.getElementById('menu-id');
+      const nameInput = document.getElementById('menu-name');
+      const catInput = document.getElementById('menu-category');
+      const priceInput = document.getElementById('menu-price');
+      const gstInput = document.getElementById('menu-gst');
+      const vegInput = document.getElementById('menu-is-veg');
+      const descInput = document.getElementById('menu-desc');
+
+      if (itemId) {
+        const item = state.menu.find(m => m.item_id === itemId);
+        title.textContent = `Edit Dish: ${item.name}`;
+        idInput.value = item.item_id;
+        nameInput.value = item.name;
+        catInput.value = item.category;
+        priceInput.value = item.price;
+        gstInput.value = item.gst;
+        vegInput.value = item.is_veg ? 'true' : 'false';
+        descInput.value = item.description || '';
+      } else {
+        title.textContent = 'Add Menu Dish';
+        idInput.value = '';
+        nameInput.value = '';
+        catInput.value = 'Main Course';
+        priceInput.value = '';
+        gstInput.value = '5';
+        vegInput.value = 'true';
+        descInput.value = '';
+      }
+      modal.classList.remove('hidden');
+    }
+
+    function closeMenuModal() {
+      document.getElementById('menu-modal').classList.add('hidden');
+    }
+
+    async function saveMenuItem(e) {
+      e.preventDefault();
+      const id = document.getElementById('menu-id').value;
+      const payload = {
+        name: document.getElementById('menu-name').value,
+        category: document.getElementById('menu-category').value,
+        price: Number(document.getElementById('menu-price').value),
+        gst: Number(document.getElementById('menu-gst').value),
+        is_veg: document.getElementById('menu-is-veg').value === 'true',
+        description: document.getElementById('menu-desc').value
+      };
+
+      try {
+        const url = id ? `/api/menu/${id}` : '/api/menu';
+        const method = id ? 'PUT' : 'POST';
+        const res = await fetch(url, {
+          method,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        if (!res.ok) throw new Error('Failed to save dish');
+        closeMenuModal();
+        showAlert(id ? 'Menu dish updated!' : 'New dish added to menu!', 'info');
+        await loadAllData();
+      } catch (err) {
+        showAlert(err.message, 'error');
+      }
+    }
+
+    async function deleteMenuItem(itemId) {
+      const item = state.menu.find(m => m.item_id === itemId);
+      if (!confirm(`Delete ${item.name} from menu?`)) return;
+
+      try {
+        const res = await fetch(`/api/menu/${itemId}`, { method: 'DELETE' });
+        if (!res.ok) throw new Error('Failed to delete item');
+        showAlert(`Deleted ${item.name} from menu.`, 'info');
+        await loadAllData();
+      } catch (err) {
+        showAlert(err.message, 'error');
+      }
+    }
+
+    // ----------------- MOBILE QR SIMULATOR -----------------
+
+    function renderSimMenu() {
+      const container = document.getElementById('sim-menu-list');
+      container.innerHTML = state.menu.map(item => {
+        const inCart = simCart.find(c => c.item_id === item.item_id);
+        const qty = inCart ? inCart.qty : 0;
+
+        return `
+          <div class="p-2.5 bg-slate-50 rounded-xl border border-slate-200 flex items-center justify-between text-xs">
+            <div class="flex-1 pr-2">
+              <div class="font-bold text-slate-900">${item.name}</div>
+              <div class="text-[10px] text-slate-500">${item.category} • ₹${item.price}</div>
+            </div>
+            <div class="flex items-center gap-1.5">
+              ${qty > 0 ? `
+                <div class="flex items-center border border-orange-300 rounded bg-white">
+                  <button onclick="updateSimQty(${item.item_id}, -1)" class="px-2 py-0.5 text-orange-700 font-bold">-</button>
+                  <span class="px-1 text-slate-900 font-semibold text-[11px]">${qty}</span>
+                  <button onclick="updateSimQty(${item.item_id}, 1)" class="px-2 py-0.5 text-orange-700 font-bold">+</button>
+                </div>
+              ` : `
+                <button onclick="updateSimQty(${item.item_id}, 1)" class="px-2.5 py-1 bg-orange-600 hover:bg-orange-700 text-white rounded-lg font-bold text-[11px]">
+                  ADD +
+                </button>
+              `}
+            </div>
+          </div>
+        `;
+      }).join('');
+      updateSimCartFooter();
+    }
+
+    function updateSimQty(itemId, delta) {
+      const existing = simCart.find(c => c.item_id === itemId);
+      if (existing) {
+        existing.qty += delta;
+        if (existing.qty <= 0) {
+          simCart = simCart.filter(c => c.item_id !== itemId);
+        }
+      } else if (delta > 0) {
+        const menuItem = state.menu.find(m => m.item_id === itemId);
+        simCart.push({ item_id: itemId, qty: 1, price: menuItem.price });
+      }
+      renderSimMenu();
+    }
+
+    function updateSimCartFooter() {
+      const totalItems = simCart.reduce((sum, i) => sum + i.qty, 0);
+      const totalCost = simCart.reduce((sum, i) => sum + (i.price * i.qty), 0);
+      document.getElementById('sim-cart-count').textContent = `${totalItems} items selected`;
+      document.getElementById('sim-cart-total').textContent = `₹${totalCost.toFixed(2)}`;
+    }
+
+    async function submitQRSimOrder() {
+      if (simCart.length === 0) {
+        showAlert('Please add at least one dish in the QR simulator.', 'error');
+        return;
+      }
+      const tableNum = document.getElementById('sim-table-num').textContent;
+      const tableObj = state.tables.find(t => t.table_number === tableNum);
+      const guestName = document.getElementById('sim-guest-name').value || 'Guest';
+      const guestPhone = document.getElementById('sim-guest-phone').value || '9999999999';
+
+      try {
+        const res = await fetch('/api/orders', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            table_id: tableObj ? tableObj.table_id : null,
+            customer_info: { name: guestName, phone: guestPhone },
+            items: simCart.map(c => ({ item_id: c.item_id, qty: c.qty })),
+            source: 'qr'
+          })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Failed to place QR order');
+
+        showAlert(`Order #${data.order.order_id} placed from Table ${tableNum}! Sent to Kitchen Display.`, 'info');
+        simCart = [];
+        await loadAllData();
+        switchTab('kitchen');
+      } catch (err) {
+        showAlert(err.message, 'error');
+      }
+    }
+
+    // ----------------- KITCHEN DISPLAY (KDS) -----------------
+
+    async function fetchOrders() {
+      await loadAllData();
+    }
+
+    function renderKDS() {
+      const container = document.getElementById('kds-orders-container');
+      const activeOrders = state.orders.filter(o => o.status !== 'completed' && o.status !== 'cancelled');
+
+      if (activeOrders.length === 0) {
+        container.innerHTML = `
+          <div class="col-span-full text-center py-12 bg-white rounded-xl border border-slate-200">
+            <i class="fa-solid fa-mug-hot text-3xl text-slate-300 mb-2"></i>
+            <p class="text-sm font-semibold text-slate-700">Kitchen Queue Clear!</p>
+            <p class="text-xs text-slate-400">All pending tickets have been prepared and served.</p>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = activeOrders.map(order => {
+        return `
+          <div class="bg-white rounded-xl border-2 ${
+            order.status === 'pending' ? 'border-amber-400' : 'border-blue-400'
+          } shadow-sm overflow-hidden flex flex-col">
+            <div class="p-3.5 ${
+              order.status === 'pending' ? 'bg-amber-500' : 'bg-blue-600'
+            } text-white flex justify-between items-center">
+              <div>
+                <span class="font-black text-sm">Order #${order.order_id}</span>
+                <span class="text-xs block opacity-90">${order.table_number || 'Takeaway'} • ${order.customer_name}</span>
+              </div>
+              <div class="text-right">
+                <span class="text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-black/20">${order.source}</span>
+                <span class="text-xs block font-mono mt-0.5 font-bold uppercase">${order.status}</span>
+              </div>
+            </div>
+
+            <div class="p-4 flex-1 space-y-2 text-xs">
+              <div class="font-semibold text-slate-700 uppercase text-[10px] tracking-wider mb-1">Items to Prepare:</div>
+              ${order.items.map(item => `
+                <div class="flex justify-between items-center p-2 bg-slate-50 rounded border border-slate-200">
+                  <span class="font-bold text-slate-800">${item.name}</span>
+                  <span class="font-extrabold text-orange-600 bg-orange-100 px-2 py-0.5 rounded">QTY: ${item.qty}</span>
+                </div>
+              `).join('')}
+            </div>
+
+            <div class="p-3 bg-slate-50 border-t border-slate-200 flex gap-2">
+              ${order.status === 'pending' ? `
+                <button onclick="updateOrderStatus(${order.order_id}, 'preparing')" class="flex-1 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg text-xs">
+                  <i class="fa-solid fa-fire mr-1"></i> Start Cooking
+                </button>
+              ` : `
+                <button onclick="updateOrderStatus(${order.order_id}, 'ready')" class="flex-1 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg text-xs">
+                  <i class="fa-solid fa-bell mr-1"></i> Ready / Served
+                </button>
+              `}
+              <button onclick="openPaymentModal(${order.order_id}, ${order.grand_total})" class="py-2 px-3 bg-slate-800 hover:bg-slate-900 text-white font-semibold rounded-lg text-xs" title="Settle">
+                <i class="fa-solid fa-receipt"></i>
+              </button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    async function updateOrderStatus(orderId, status) {
+      try {
+        await fetch(`/api/orders/${orderId}/status`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status })
+        });
+        await loadAllData();
+      } catch (err) {
+        showAlert(err.message, 'error');
+      }
+    }
+
+    // ----------------- INVENTORY & RECIPES (CRUD) -----------------
+
+    function renderInventoryView() {
+      const tbody = document.getElementById('inventory-table-body');
+      let totalVal = 0;
+      let lowCount = 0;
+
+      tbody.innerHTML = state.inventory.map(inv => {
+        totalVal += (inv.stock * inv.price);
+        const isLow = inv.stock <= inv.min_stock;
+        if (isLow) lowCount++;
+
+        return `
+          <tr class="hover:bg-slate-50 transition">
+            <td class="py-3 px-4 font-semibold text-slate-800">${inv.name}</td>
+            <td class="py-3 px-4 font-mono font-bold text-slate-900">${inv.stock} ${inv.unit}</td>
+            <td class="py-3 px-4 text-slate-500 font-mono">${inv.min_stock} ${inv.unit}</td>
+            <td class="py-3 px-4">
+              <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
+                isLow ? 'bg-red-100 text-red-800 animate-pulse' : 'bg-emerald-100 text-emerald-800'
+              }">
+                ${isLow ? 'Low Stock Alert' : 'In Stock'}
+              </span>
+            </td>
+            <td class="py-3 px-4">₹${inv.price} / ${inv.unit}</td>
+            <td class="py-3 px-4 font-semibold text-slate-800">₹${(inv.stock * inv.price).toFixed(2)}</td>
+            <td class="py-3 px-4 text-right space-x-1">
+              <button onclick="openRestockModal(${inv.inventory_id}, '${inv.name}', '${inv.unit}')" class="px-2 py-1 bg-orange-50 hover:bg-orange-100 text-orange-700 font-semibold rounded text-[11px]" title="Quick Restock">
+                <i class="fa-solid fa-plus text-[10px]"></i> Restock
+              </button>
+              <button onclick="openInventoryModal(${inv.inventory_id})" class="px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded text-[11px]" title="Edit Material">
+                <i class="fa-solid fa-pen text-[10px]"></i>
+              </button>
+              <button onclick="deleteInventory(${inv.inventory_id})" class="px-2 py-1 bg-red-50 hover:bg-red-100 text-red-700 font-semibold rounded text-[11px]" title="Delete Material">
+                <i class="fa-solid fa-trash text-[10px]"></i>
+              </button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+
+      document.getElementById('inv-total-count').textContent = `${state.inventory.length} items`;
+      document.getElementById('inv-low-count').textContent = `${lowCount} items`;
+      document.getElementById('inv-total-value').textContent = `₹${totalVal.toLocaleString()}`;
+
+      // Recipe BOM Table
+      const rbody = document.getElementById('recipe-table-body');
+      rbody.innerHTML = state.recipes.map(r => `
+        <tr class="hover:bg-slate-50 transition">
+          <td class="py-3 px-4 font-bold text-slate-900">${r.menu_name}</td>
+          <td class="py-3 px-4 font-semibold text-orange-700">${r.inventory_name}</td>
+          <td class="py-3 px-4 font-mono font-bold">${r.qty_required} ${r.unit}</td>
+          <td class="py-3 px-4 text-slate-500">Every 1 portion ordered automatically deducts ${r.qty_required} ${r.unit} from raw stock.</td>
+          <td class="py-3 px-4 text-right">
+            <button onclick="deleteRecipe(${r.menu_item_id}, ${r.inventory_id})" class="px-2 py-1 bg-red-50 hover:bg-red-100 text-red-700 font-semibold rounded text-[11px]">
+              <i class="fa-solid fa-trash text-[10px] mr-1"></i> Remove
+            </button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    function openInventoryModal(invId = null) {
+      const modal = document.getElementById('inv-modal');
+      const title = document.getElementById('inv-modal-title');
+      const idInput = document.getElementById('inv-id');
+      const nameInput = document.getElementById('inv-name');
+      const unitInput = document.getElementById('inv-unit');
+      const priceInput = document.getElementById('inv-price');
+      const stockInput = document.getElementById('inv-stock');
+      const minInput = document.getElementById('inv-min-stock');
+
+      if (invId) {
+        const item = state.inventory.find(i => i.inventory_id === invId);
+        title.textContent = `Edit Material: ${item.name}`;
+        idInput.value = item.inventory_id;
+        nameInput.value = item.name;
+        unitInput.value = item.unit;
+        priceInput.value = item.price;
+        stockInput.value = item.stock;
+        minInput.value = item.min_stock;
+      } else {
+        title.textContent = 'Add Raw Material';
+        idInput.value = '';
+        nameInput.value = '';
+        unitInput.value = 'kg';
+        priceInput.value = 50;
+        stockInput.value = 10;
+        minInput.value = 5;
+      }
+      modal.classList.remove('hidden');
+    }
+
+    function closeInventoryModal() {
+      document.getElementById('inv-modal').classList.add('hidden');
+    }
+
+    async function saveInventory(e) {
+      e.preventDefault();
+      const id = document.getElementById('inv-id').value;
+      const payload = {
+        name: document.getElementById('inv-name').value,
+        unit: document.getElementById('inv-unit').value,
+        price: Number(document.getElementById('inv-price').value),
+        stock: Number(document.getElementById('inv-stock').value),
+        min_stock: Number(document.getElementById('inv-min-stock').value)
+      };
+
+      try {
+        const url = id ? `/api/inventory/${id}` : '/api/inventory';
+        const method = id ? 'PUT' : 'POST';
+        const res = await fetch(url, {
+          method,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        if (!res.ok) throw new Error('Failed to save material');
+        closeInventoryModal();
+        showAlert(id ? 'Raw material updated!' : 'Raw material added!', 'info');
+        await loadAllData();
+      } catch (err) {
+        showAlert(err.message, 'error');
+      }
+    }
+
+    async function deleteInventory(invId) {
+      const item = state.inventory.find(i => i.inventory_id === invId);
+      if (!confirm(`Delete ${item.name} from inventory? This also removes associated recipe links.`)) return;
+
+      try {
+        const res = await fetch(`/api/inventory/${invId}`, { method: 'DELETE' });
+        if (!res.ok) throw new Error('Failed to delete inventory');
+        showAlert(`Deleted ${item.name} from inventory.`, 'info');
+        await loadAllData();
+      } catch (err) {
+        showAlert(err.message, 'error');
+      }
+    }
+
+    function openRestockModal(invId, name, unit) {
+      state.activeRestockId = invId;
+      document.getElementById('restock-item-name').textContent = `Add stock for ${name}`;
+      document.getElementById('restock-unit').textContent = unit;
+      document.getElementById('restock-input-qty').value = '';
+      document.getElementById('restock-modal').classList.remove('hidden');
+    }
+
+    function closeRestockModal() {
+      document.getElementById('restock-modal').classList.add('hidden');
+      state.activeRestockId = null;
+    }
+
+    async function submitRestock() {
+      const qty = parseFloat(document.getElementById('restock-input-qty').value);
+      if (!qty || qty <= 0) {
+        alert('Please enter a valid quantity.');
+        return;
+      }
+      try {
+        const res = await fetch(`/api/inventory/${state.activeRestockId}/restock`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ add_qty: qty })
+        });
+        if (!res.ok) throw new Error('Failed to update stock');
+        closeRestockModal();
+        showAlert('Inventory restocked successfully!', 'info');
+        await loadAllData();
+      } catch (err) {
+        showAlert(err.message, 'error');
+      }
+    }
+
+    // Recipe BOM Modal
+    function openRecipeModal() {
+      const menuSelect = document.getElementById('recipe-menu-id');
+      menuSelect.innerHTML = state.menu.map(m => `<option value="${m.item_id}">${m.name} (${m.category})</option>`).join('');
+
+      const invSelect = document.getElementById('recipe-inv-id');
+      invSelect.innerHTML = state.inventory.map(i => `<option value="${i.inventory_id}">${i.name} (${i.unit})</option>`).join('');
+
+      document.getElementById('recipe-qty').value = '';
+      document.getElementById('recipe-modal').classList.remove('hidden');
+    }
+
+    function closeRecipeModal() {
+      document.getElementById('recipe-modal').classList.add('hidden');
+    }
+
+    async function saveRecipe(e) {
+      e.preventDefault();
+      const payload = {
+        menu_item_id: Number(document.getElementById('recipe-menu-id').value),
+        inventory_id: Number(document.getElementById('recipe-inv-id').value),
+        qty_required: Number(document.getElementById('recipe-qty').value)
+      };
+
+      try {
+        const res = await fetch('/api/recipes', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        if (!res.ok) throw new Error('Failed to save recipe link');
+        closeRecipeModal();
+        showAlert('Recipe Bill of Materials updated!', 'info');
+        await loadAllData();
+      } catch (err) {
+        showAlert(err.message, 'error');
+      }
+    }
+
+    async function deleteRecipe(menuId, invId) {
+      if (!confirm('Remove this recipe mapping?')) return;
+      try {
+        const res = await fetch(`/api/recipes/${menuId}/${invId}`, { method: 'DELETE' });
+        if (!res.ok) throw new Error('Failed to delete recipe link');
+        showAlert('Recipe link removed.', 'info');
+        await loadAllData();
+      } catch (err) {
+        showAlert(err.message, 'error');
+      }
+    }
+
+    // ----------------- INVOICES VIEW -----------------
+
+    function renderInvoicesView() {
+      const tbody = document.getElementById('invoices-table-body');
+      tbody.innerHTML = state.invoices.map(inv => {
+        const custName = inv.customer ? inv.customer.name : 'Walk-in Guest';
+        const method = inv.payment ? inv.payment.method.toUpperCase() : 'PAID';
+
+        return `
+          <tr class="hover:bg-slate-50 transition">
+            <td class="py-3 px-4 font-mono font-bold text-slate-900">${inv.invoice_no}</td>
+            <td class="py-3 px-4 text-slate-600">Order #${inv.order_id}</td>
+            <td class="py-3 px-4 font-mono">${inv.date}</td>
+            <td class="py-3 px-4 font-semibold text-slate-800">${custName}</td>
+            <td class="py-3 px-4 font-mono">₹${inv.cgst}</td>
+            <td class="py-3 px-4 font-mono">₹${inv.sgst}</td>
+            <td class="py-3 px-4 font-mono font-bold text-orange-600">₹${inv.total_tax}</td>
+            <td class="py-3 px-4"><span class="px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 text-[10px] font-bold">${method}</span></td>
+            <td class="py-3 px-4 text-right">
+              <button onclick="openReceiptModal(${inv.invoice_id})" class="px-2.5 py-1 bg-slate-800 hover:bg-slate-900 text-white font-semibold rounded text-[11px]">
+                <i class="fa-solid fa-receipt mr-1"></i> Tax Invoice
+              </button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    // ----------------- CUSTOMERS & STAFF (CRUD) -----------------
+
+    function renderCustomersAndStaff() {
+      const cbody = document.getElementById('customers-table-body');
+      cbody.innerHTML = state.customers.map(c => `
+        <tr class="hover:bg-slate-50 transition">
+          <td class="py-3 px-4 font-bold text-slate-900">${c.name}</td>
+          <td class="py-3 px-4 font-mono">${c.phone}</td>
+          <td class="py-3 px-4 text-slate-600">${c.address || 'Noida'}</td>
+          <td class="py-3 px-4 font-semibold text-slate-800">${c.order_count || 1} Orders</td>
+          <td class="py-3 px-4 font-mono font-bold text-emerald-700">₹${(c.total_spend || 693).toFixed(2)}</td>
+          <td class="py-3 px-4 text-right space-x-1">
+            <button onclick="openCustomerModal(${c.customer_id})" class="px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded text-[10px]">
+              <i class="fa-solid fa-pen"></i>
+            </button>
+            <button onclick="deleteCustomer(${c.customer_id})" class="px-2 py-1 bg-red-50 hover:bg-red-100 text-red-700 rounded text-[10px]">
+              <i class="fa-solid fa-trash"></i>
+            </button>
+          </td>
+        </tr>
+      `).join('');
+
+      const staffContainer = document.getElementById('staff-list-container');
+      staffContainer.innerHTML = state.staff.map(s => `
+        <div class="p-3.5 flex items-center justify-between hover:bg-slate-50 transition">
+          <div class="flex items-center gap-3">
+            <div class="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center text-slate-700 font-bold">
+              ${s.name.charAt(0)}
+            </div>
+            <div>
+              <h4 class="font-bold text-sm text-slate-900">${s.name}</h4>
+              <p class="text-xs text-slate-500">${s.role} • ${s.phone || 'Active'}</p>
+            </div>
+          </div>
+          <div class="flex items-center gap-2">
+            <div class="text-right">
+              <span class="text-xs font-bold text-slate-800">₹${s.salary.toLocaleString()}/mo</span>
+              <span class="block text-[10px] text-emerald-600 font-medium">Active</span>
+            </div>
+            <button onclick="openStaffModal(${s.staff_id})" class="p-1.5 text-slate-400 hover:text-slate-700">
+              <i class="fa-solid fa-pen text-xs"></i>
+            </button>
+            <button onclick="deleteStaff(${s.staff_id})" class="p-1.5 text-slate-400 hover:text-red-600">
+              <i class="fa-solid fa-trash text-xs"></i>
+            </button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function openCustomerModal(custId = null) {
+      const modal = document.getElementById('cust-modal');
+      const title = document.getElementById('cust-modal-title');
+      const idInput = document.getElementById('cust-id');
+      const nameInput = document.getElementById('cust-name');
+      const phoneInput = document.getElementById('cust-phone');
+      const emailInput = document.getElementById('cust-email');
+      const addrInput = document.getElementById('cust-address');
+      const gstInput = document.getElementById('cust-gst');
+
+      if (custId) {
+        const cust = state.customers.find(c => c.customer_id === custId);
+        title.textContent = `Edit Customer: ${cust.name}`;
+        idInput.value = cust.customer_id;
+        nameInput.value = cust.name;
+        phoneInput.value = cust.phone;
+        emailInput.value = cust.email || '';
+        addrInput.value = cust.address || '';
+        gstInput.value = cust.gst_number || '';
+      } else {
+        title.textContent = 'Add Customer';
+        idInput.value = '';
+        nameInput.value = '';
+        phoneInput.value = '';
+        emailInput.value = '';
+        addrInput.value = 'Noida';
+        gstInput.value = '';
+      }
+      modal.classList.remove('hidden');
+    }
+
+    function closeCustomerModal() {
+      document.getElementById('cust-modal').classList.add('hidden');
+    }
+
+    async function saveCustomer(e) {
+      e.preventDefault();
+      const id = document.getElementById('cust-id').value;
+      const payload = {
+        name: document.getElementById('cust-name').value,
+        phone: document.getElementById('cust-phone').value,
+        email: document.getElementById('cust-email').value,
+        address: document.getElementById('cust-address').value,
+        gst_number: document.getElementById('cust-gst').value
+      };
+
+      try {
+        const url = id ? `/api/customers/${id}` : '/api/customers';
+        const method = id ? 'PUT' : 'POST';
+        const res = await fetch(url, {
+          method,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        if (!res.ok) throw new Error('Failed to save customer');
+        closeCustomerModal();
+        showAlert(id ? 'Customer updated!' : 'Customer added to CRM!', 'info');
+        await loadAllData();
+      } catch (err) {
+        showAlert(err.message, 'error');
+      }
+    }
+
+    async function deleteCustomer(custId) {
+      const cust = state.customers.find(c => c.customer_id === custId);
+      if (!confirm(`Delete customer ${cust.name}?`)) return;
+
+      try {
+        const res = await fetch(`/api/customers/${custId}`, { method: 'DELETE' });
+        if (!res.ok) throw new Error('Failed to delete customer');
+        showAlert(`Customer ${cust.name} removed.`, 'info');
+        await loadAllData();
+      } catch (err) {
+        showAlert(err.message, 'error');
+      }
+    }
+
+    function openStaffModal(staffId = null) {
+      const modal = document.getElementById('staff-modal');
+      const title = document.getElementById('staff-modal-title');
+      const idInput = document.getElementById('staff-id');
+      const nameInput = document.getElementById('staff-name');
+      const roleInput = document.getElementById('staff-role');
+      const phoneInput = document.getElementById('staff-phone');
+      const salInput = document.getElementById('staff-salary');
+
+      if (staffId) {
+        const staff = state.staff.find(s => s.staff_id === staffId);
+        title.textContent = `Edit Staff: ${staff.name}`;
+        idInput.value = staff.staff_id;
+        nameInput.value = staff.name;
+        roleInput.value = staff.role;
+        phoneInput.value = staff.phone || '';
+        salInput.value = staff.salary || 15000;
+      } else {
+        title.textContent = 'Add Staff Member';
+        idInput.value = '';
+        nameInput.value = '';
+        roleInput.value = 'Waiter';
+        phoneInput.value = '';
+        salInput.value = 15000;
+      }
+      modal.classList.remove('hidden');
+    }
+
+    function closeStaffModal() {
+      document.getElementById('staff-modal').classList.add('hidden');
+    }
+
+    async function saveStaff(e) {
+      e.preventDefault();
+      const id = document.getElementById('staff-id').value;
+      const payload = {
+        name: document.getElementById('staff-name').value,
+        role: document.getElementById('staff-role').value,
+        phone: document.getElementById('staff-phone').value,
+        salary: Number(document.getElementById('staff-salary').value)
+      };
+
+      try {
+        const url = id ? `/api/staff/${id}` : '/api/staff';
+        const method = id ? 'PUT' : 'POST';
+        const res = await fetch(url, {
+          method,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        if (!res.ok) throw new Error('Failed to save staff');
+        closeStaffModal();
+        showAlert(id ? 'Staff updated!' : 'Staff member added!', 'info');
+        await loadAllData();
+      } catch (err) {
+        showAlert(err.message, 'error');
+      }
+    }
+
+    async function deleteStaff(staffId) {
+      const staff = state.staff.find(s => s.staff_id === staffId);
+      if (!confirm(`Delete staff member ${staff.name}?`)) return;
+
+      try {
+        const res = await fetch(`/api/staff/${staffId}`, { method: 'DELETE' });
+        if (!res.ok) throw new Error('Failed to delete staff');
+        showAlert(`Staff ${staff.name} removed.`, 'info');
+        await loadAllData();
+      } catch (err) {
+        showAlert(err.message, 'error');
+      }
+    }
+
+    async function resetData() {
+      if (!confirm('Reset restaurant database to original demo seed data?')) return;
+      try {
+        await fetch('/api/reset', { method: 'POST' });
+        state.cart = [];
+        simCart = [];
+        await loadAllData();
+        showAlert('Database reset to initial demo state successfully!', 'info');
+      } catch (err) {
+        showAlert('Failed to reset: ' + err.message, 'error');
+      }
+    }
+  </script>
+</body>
+</html>
